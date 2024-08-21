@@ -157,7 +157,6 @@ char* serializza_array_squadre() {
 
     json_object *jarray = json_object_new_array();
 
-    pthread_mutex_lock(&mutexListaSquadre);//prende mutex array squadre
     for (int i = 0; i<50; i++) {
 
             if(squadreInCostruzione[i] != NULL){
@@ -173,8 +172,6 @@ char* serializza_array_squadre() {
     const char *json_str = json_object_to_json_string(jarray);
     char *json_copy = strdup(json_str); // Copia la stringa JSON per restituirla
     json_object_put(jarray); // Dealloca l'oggetto JSON
-
-    pthread_mutex_unlock(&mutexListaSquadre); //Rilascia mutex array squadre
 
     return json_copy;
 }
@@ -207,9 +204,8 @@ void *send_lista_squadre_client(void* client_socket){
             }
         printf("Messaggio inviato %s", tipoDiMessaggio);
 
-        pthread_mutex_unlock(&mutexListaSquadre);
+
         char *json__arraySquadre_str = serializza_array_squadre();
-        pthread_mutex_lock(&mutexListaSquadre);
         char buffer[2048];
         snprintf(buffer, sizeof(buffer), "%s\n", json__arraySquadre_str);
             if (send(client, buffer, strlen(buffer), 0) < 0) {
@@ -229,10 +225,6 @@ void *send_lista_squadre_client(void* client_socket){
 }
 
 char *serializza_oggetto_composizione_squadre(int indexSquadra){
-
-    //Assumi mutex
-    pthread_mutex_lock(&mutexListaSquadre);
-    pthread_mutex_lock(&mutexPlayers);
 
     // Creazione dei due array JSON di stringhe
     struct json_object *json_array_richieste = json_object_new_array();
@@ -277,11 +269,58 @@ char *serializza_oggetto_composizione_squadre(int indexSquadra){
     char delimitatore[] = "\n";
     strcat(json_string,delimitatore);
 
-    //Assumi mutex
-    pthread_mutex_unlock(&mutexListaSquadre);
-    pthread_mutex_unlock(&mutexPlayers);
-
     return json_string;
+}
+
+void send_aggiornamento_composizione_squadra(char *nomeSquadra){
+
+    //indice for
+    int i;
+
+    //Cerca la squdra nell'array
+    for(i=0;i<50;i++){
+
+        if(squadreInCostruzione[i] != NULL){
+
+            if(strcmp(squadreInCostruzione[i]->nomeSquadra,nomeSquadra) == 0) break;
+        }
+    }
+
+    //Recupero degli oggetti che contengono array richieste e l'array accettati da mandare a client dello spogliatolio della squadra
+    char *oggettoDaInviare = serializza_oggetto_composizione_squadre(i);
+
+    //Aggiorna tutti i player client (e il capitano) della lista richieste
+
+    //Aggiornamento al capitano
+    int socket_player = squadreInCostruzione[i]->capitano->socket;
+    send(socket_player,"AggiornamentoComposizioneSquadra\n",strlen("AggiornamentoComposizioneSquadra\n"),0);
+    send(socket_player,oggettoDaInviare,strlen(oggettoDaInviare),0);
+    printf("Inviato l'oggetto: %s al capitano %s\n",oggettoDaInviare,squadreInCostruzione[i]->capitano->nomePlayer);
+
+    //Aggiornamento ai player che sono in lista di richiesta
+    for(int k=0; k<50; k++){
+
+        if(squadreInCostruzione[i]->richiestePartecipazione[k] != NULL){
+
+            int socket_player = squadreInCostruzione[i]->richiestePartecipazione[k]->socket;
+            send(socket_player,"AggiornamentoComposizioneSquadra\n",strlen("AggiornamentoComposizioneSquadra\n"),0);
+            send(socket_player,oggettoDaInviare,strlen(oggettoDaInviare),0);
+            printf("Inviato l'oggetto: %s al player %s\n",oggettoDaInviare,squadreInCostruzione[i]->richiestePartecipazione[k]->nomePlayer);
+        }
+    }
+
+    //Aggiornamento dei player accettati
+    for(int k=0; k<4; k++){
+
+        if(squadreInCostruzione[i]->players[k] != NULL){
+
+            int socket_player = squadreInCostruzione[i]->players[k]->socket;
+            send(socket_player,"AggiornamentoComposizioneSquadra\n",strlen("AggiornamentoComposizioneSquadra\n"),0);
+            send(socket_player,oggettoDaInviare,strlen(oggettoDaInviare),0);
+            printf("Inviato l'oggetto: %s al player %s\n",oggettoDaInviare,squadreInCostruzione[i]->players[k]->nomePlayer);
+        }
+    }
+
 }
 
 void aggiungi_richiesta_partecipazione_squadra(char *messaggio, int client_socket){
@@ -301,10 +340,6 @@ void aggiungi_richiesta_partecipazione_squadra(char *messaggio, int client_socke
         json_object_object_get_ex(parsed_json, "player", &playerJSON);
         char nomePlayer[50];
         strcpy(nomePlayer,json_object_get_string(playerJSON));
-
-        //Acquisizione mutex degli array globali
-        pthread_mutex_lock(&mutexListaSquadre);
-        pthread_mutex_lock(&mutexPlayers);
 
         //Dichiarazioni indici for
         int indexSquadra;
@@ -352,47 +387,7 @@ void aggiungi_richiesta_partecipazione_squadra(char *messaggio, int client_socke
                 //Se fallisce la send eliminare il player dall'array..
             }
 
-            //Recupero degli oggetti che contengono array richieste e l'array accettati da mandare a client dello spogliatolio della squadra
-            pthread_mutex_unlock(&mutexListaSquadre);
-            pthread_mutex_unlock(&mutexPlayers);
-            char *oggettoDaInviare = serializza_oggetto_composizione_squadre(indexSquadra);
-            pthread_mutex_lock(&mutexListaSquadre);
-            pthread_mutex_lock(&mutexPlayers);
-
-            //Aggiorna tutti i player client (e il capitano) della lista richieste
-            for(int k=0; k<50; k++){
-
-                if(squadreInCostruzione[indexSquadra]->richiestePartecipazione[k] != NULL){
-
-                    int socket_player = squadreInCostruzione[indexSquadra]->richiestePartecipazione[k]->socket;
-                    send(socket_player,"AggiornamentoComposizioneSquadra\n",strlen("AggiornamentoComposizioneSquadra\n"),0);
-                    send(socket_player,oggettoDaInviare,strlen(oggettoDaInviare),0);
-                    printf("Inviato l'oggetto: %s al player %s\n",oggettoDaInviare,squadreInCostruzione[indexSquadra]->richiestePartecipazione[k]->nomePlayer);
-
-
-                }
-            }
-
-            for(int k=0; k<4; k++){
-
-                if(squadreInCostruzione[indexSquadra]->players[k] != NULL){
-
-                    int socket_player = squadreInCostruzione[indexSquadra]->players[k]->socket;
-                    send(socket_player,"AggiornamentoComposizioneSquadra\n",strlen("AggiornamentoComposizioneSquadra\n"),0);
-                    send(socket_player,oggettoDaInviare,strlen(oggettoDaInviare),0);
-                    printf("Inviato l'oggetto: %s al player %s\n",oggettoDaInviare,squadreInCostruzione[indexSquadra]->players[k]->nomePlayer);
-                }
-            }
-
-            int socket_player = squadreInCostruzione[indexSquadra]->capitano->socket;
-            send(socket_player,"AggiornamentoComposizioneSquadra\n",strlen("AggiornamentoComposizioneSquadra\n"),0);
-            send(socket_player,oggettoDaInviare,strlen(oggettoDaInviare),0);
-            printf("Inviato l'oggetto: %s al capitano %s\n",oggettoDaInviare,squadreInCostruzione[indexSquadra]->capitano->nomePlayer);
-
-
-            //Rilascio mutex degli array globali
-            pthread_mutex_unlock(&mutexListaSquadre);
-            pthread_mutex_unlock(&mutexPlayers);
+            send_aggiornamento_composizione_squadra(nomeSquadra);
 
             return;
         }
@@ -410,123 +405,10 @@ void aggiungi_richiesta_partecipazione_squadra(char *messaggio, int client_socke
             //Se fallisce la send eliminare il player dall'array..
         }
 
-        //Rilascio mutex degli array globali
-        pthread_mutex_unlock(&mutexListaSquadre);
-        pthread_mutex_unlock(&mutexPlayers);
-
         return;
 }
 
-
-////////////////////////////////////////DEPRECATE//////////////////////////////////////////////////////////////////
-
-void *aggiungi_richiestaPartecipazione_squadra(void* arg){
-
-    printf("Nuovo thread \"rihciesta partecipazione\" creato, in attesa che il capitano prende una decisione\n");
-
-    char msg_daInviare[1024];
-    int bytes_read;
-    int i;
-
-    thread_data *datiThread = (thread_data*)arg;
-
-    if(datiThread != NULL){
-
-        //parse JSON del messaggio
-        struct json_object *parsed_json;
-        parsed_json = json_tokener_parse(datiThread->messaggio);
-
-        //Estrazione squadra a cui partecipare
-        struct json_object *squadraJSON;
-        json_object_object_get_ex(parsed_json, "squadra", &squadraJSON);
-        char nomeSquadra[100];
-        strcpy(nomeSquadra,json_object_get_string(squadraJSON));
-
-        //Estrazione nomePlayer
-        struct json_object *playerJSON;
-        json_object_object_get_ex(parsed_json, "player", &playerJSON);
-        char nomePlayer[50];
-        strcpy(nomePlayer,json_object_get_string(playerJSON));
-
-        //Cerca la posizione dell'array in cui si trova la squadra a cui ha chiesto la partecipazione
-        pthread_mutex_lock(&mutexListaSquadre); //Sincronizzazione poiché si tenta una lettura variabile globale
-        for(i=0; i<50; i++){
-
-            if(squadreInCostruzione[i] != NULL)
-                if(strcmp(nomeSquadra,squadreInCostruzione[i]->nomeSquadra)==0) break;
-
-        }
-
-        //Aggiunge richiesta nella squadra e mette il client in attesa della decisione del capitano
-        if(squadreInCostruzione[i]!=NULL){
-
-            int j;
-            for(j=0;j<50;j++){ //trova la prima posizione libera dell'array
-
-                if((strcmp(squadreInCostruzione[i]->richiestePartecipazione[j],"null") == 0)){
-
-                    strcpy(squadreInCostruzione[i]->richiestePartecipazione[j],nomePlayer);
-                    printf("richiesta del player: %s aggiunta tra le ricieste della squadra: %s\n",nomePlayer,squadreInCostruzione[i]->nomeSquadra);
-                    break;
-                }
-            }
-
-            pthread_mutex_unlock(&mutexListaSquadre); //Rilascia mutex
-            printf("sto per svegliare il thread\n");
-            pthread_cond_broadcast(&condSquadra);
-            pthread_mutex_lock(&mutexListaSquadre);
-
-            int decisione = 0;
-            //In attesa della decisione del capitano
-            while(decisione == 0){ //Controlla se il capitano ha preso una decisione, se non l'ha presa rimetti in attesa. 0=non presa; 1=accettato; 2=rifiutato o squadra chiusa
-
-                pthread_mutex_unlock(&mutexListaSquadre); //Rilascia mutex poiché va in attesa
-                pthread_mutex_lock(&mutexDecisioneCap);
-                pthread_cond_wait(&condDecisioneCap,&mutexDecisioneCap);
-                pthread_mutex_lock(&mutexListaSquadre);
-                if(squadreInCostruzione[i] != NULL)
-                    if(strcmp(squadreInCostruzione[i]->nomeSquadra,nomeSquadra)==0) //La squadra è ancora in costruzione
-                        if(strcmp(squadreInCostruzione[i]->richiestePartecipazione[j],nomePlayer) == 0) //Il player si trova ancora tra le richieste quindi non è stata presa ancora una decisione
-                            decisione = 0;
-                        else{ //Il player non è più tra le richieste, se si trova tra i player accettati allora assegniamo 1, 2 altrimenti;
-
-                            for(int z=0; z<4; z++){
-
-                                if(strcmp(squadreInCostruzione[z],nomePlayer) == 0){
-
-                                    decisione = 1;
-                                    strcpy(msg_daInviare, "accettato\n");
-                                    break;
-                                }
-                            }
-
-                            if(decisione != 1){
-
-                                decisione = 2;
-                                strcpy(msg_daInviare, "rifiutato\n");
-                            }
-                        }
-            }
-
-            char tipoMessaggio[50];
-            strcpy(tipoMessaggio,"RispostaDelCapitano\n");
-            send(datiThread->clientSock,tipoMessaggio,strlen(tipoMessaggio),0);
-            send(datiThread->clientSock,msg_daInviare,strlen(msg_daInviare),0);
-            printf("Risposta decisione capitano inviato\n");
-        }
-
-    }
-
-    pthread_mutex_unlock(&mutexListaSquadre);
-    pthread_mutex_unlock(&mutexDecisioneCap);
-
-    pthread_exit(NULL);
-
-}
-
-void gestione_decisioneCapitano(char *messaggio){
-
-    int i;
+void aggiornamento_composizione_squadra(char *messaggio){
 
     //Deserializzazione del messaggio
     struct json_object *parsed_json;
@@ -550,152 +432,99 @@ void gestione_decisioneCapitano(char *messaggio){
     char *decisioneString = malloc(strlen(json_object_get_string(decisioneCapitano)) + 1);
     strcpy(decisioneString,json_object_get_string(decisioneCapitano));
 
-    printf("Elaborazione decisione capitano\n");
+    //indice for che individua la squadra nell'array
+    int indexSquadra;
+    //indice for che individua il player nell'array
+    int indexPlayer;
 
-    //Cerca la squadra nell'array globale
-    pthread_mutex_lock(&mutexListaSquadre); //Mutua esclusione
-    for(i=0; i<50; i++){
+    //Ricerca della squadra con cui il capitano ha preso un decisione
+    for(indexSquadra=0; indexSquadra<50; indexSquadra++){
 
-        if(squadreInCostruzione[i] != NULL){
+        if(squadreInCostruzione[indexSquadra] != NULL){
 
-            if(strcmp(squadreInCostruzione[i]->nomeSquadra,squadraString) == 0)
-                break;
+            if(strcmp(squadreInCostruzione[indexSquadra]->nomeSquadra,squadraString) == 0) break;
+        }
+
+    }
+
+    //Ricerca del player della squadra il cui capitano ha preso una decisione
+    for(indexPlayer=0; indexPlayer<50; indexPlayer++){
+
+        if(playersConnessi[indexPlayer] != NULL){
+
+            if(strcmp(playersConnessi[indexPlayer]->nomePlayer,playerString) == 0) break;
         }
     }
 
+    if(indexSquadra > 49 || indexPlayer > 49){
 
-    if(squadreInCostruzione[i] != NULL){
+        //Errore nell'indivuazione della squadra o del player, forse sono discoenssi
+        int socketCapitano = squadreInCostruzione[indexSquadra]->capitano->socket;
+        send(socketCapitano, "rispostaDecisione\n", strlen("rispostaDecisione\n"),0);
+        send(socketCapitano, "ko\n", strlen("ko\n"),0);
 
-        for(int j=0; j<50; j++){
+        return;
 
-            if(strcmp(squadreInCostruzione[i]->richiestePartecipazione[j],playerString) == 0){
+    }
 
-                strcpy(squadreInCostruzione[i]->richiestePartecipazione[j],"null"); //A prescindere dalla decisione presa, rimuovi la richiesta di partecipazione
+
+    //Rimozione del player tra le richieste a prescindere se accettato o rifiutato
+    for(int k=0; k<50; k++){
+
+        if(squadreInCostruzione[indexSquadra]->richiestePartecipazione[k] != NULL){
+
+            if(strcmp(squadreInCostruzione[indexSquadra]->richiestePartecipazione[k]->nomePlayer,playerString) == 0){
+
+                squadreInCostruzione[indexSquadra]->richiestePartecipazione[k] = NULL;
+                printf("Rimosso il player %s tra le richieste della squadra %s\n",playerString,squadraString);
+
                 break;
             }
-
         }
     }
 
+    //Se accettato, inserisce nella lista accettati
     if(strcmp(decisioneString,"accettato") == 0){
 
-        if(squadreInCostruzione[i] != NULL){
+        int k;
 
-            for(int j=0; j<4; j++){
+        for(k=0; k<4; k++){
 
-                if(strcmp(squadreInCostruzione[i]->players[j],"null") == 0){
+            if(squadreInCostruzione[indexSquadra]->players[k] == NULL){
 
-                    strcpy(squadreInCostruzione[i]->players[j],playerString); //Il player passa dalla lista richieste della squadra alla lista dei player partecipanti
-                    squadreInCostruzione[i]->numeroPlayers = squadreInCostruzione[i]->numeroPlayers++;
-                    break;
+                squadreInCostruzione[indexSquadra]->players[k] = playersConnessi[indexPlayer];
+                (squadreInCostruzione[indexSquadra]->numeroPlayers)++;
+                printf("Aggiunto il player %s nella squadra %s \n",nomePlayer,squadraString);
 
-                }
-
-            }
-        }
-    }
-
-    pthread_mutex_unlock(&mutexListaSquadre);
-    pthread_cond_broadcast(&condSquadra);
-    pthread_cond_broadcast(&condDecisioneCap);
-}
-
-void *send_aggiornamento_composizione_squadre(void* arg){
-
-    printf("Nuovo thread (invio aggiornamento spogliatoio) creato\n");
-
-    //Leggi argomento
-    thread_data *datiThread = (thread_data*)arg;
-    char *messaggio = malloc(strlen(datiThread->messaggio) +1);
-    strcpy(messaggio,datiThread->messaggio);
-    int client_socket = datiThread->clientSock;
-
-
-    //Deserializzazione del messaggio
-    struct json_object *parsed_json;
-    parsed_json = json_tokener_parse(messaggio);
-
-    json_object *nomeSquadra;
-    json_object_object_get_ex(parsed_json, "squadra", &nomeSquadra);
-
-    char *squadraString = malloc(strlen(json_object_get_string(nomeSquadra)) + 1);
-    strcpy(squadraString,json_object_get_string(nomeSquadra));
-
-    int aggiornamentoListe = 1;
-
-    while(1){
-
-        while(aggiornamentoListe == 0){
-
-            pthread_mutex_lock(&mutexSquadra);
-            pthread_cond_wait(&condSquadra,&mutexSquadra);
-            printf("Thread spogliatoio squadra: %s svegliato\n", squadraString);
-            aggiornamentoListe = 1;
-        }
-
-        pthread_mutex_lock(&mutexListaSquadre);
-
-        // Creazione dei due array JSON di stringhe
-        struct json_object *json_array_richieste = json_object_new_array();
-        struct json_object *json_array_accettati = json_object_new_array();
-
-        for(int i=0; i<50; i++){
-
-            if(squadreInCostruzione[i]!= NULL){
-
-                if(strcmp(squadreInCostruzione[i]->nomeSquadra,squadraString) == 0){
-
-                    for(int j=0; j<50; j++){
-
-                        if(strcmp(squadreInCostruzione[i]->richiestePartecipazione[j],"null") != 0){
-                            char *richiesta;
-                            int lunghezzaStringa = strlen(squadreInCostruzione[i]->richiestePartecipazione[j]);
-                            richiesta = malloc(sizeof(lunghezzaStringa));
-                            strcpy(richiesta,squadreInCostruzione[i]->richiestePartecipazione[j]);
-                            json_object_array_add(json_array_richieste, json_object_new_string(richiesta));
-                            printf("Richiesta player: %s aggiunta\n", richiesta);
-                            break;
-                        }
-                    }
-
-                    for(int j=0; j<4; j++){
-
-                        if(strcmp(squadreInCostruzione[i]->players[j],"null") != 0){
-
-                            char *player;
-                            int lunghezzaStringa = strlen(squadreInCostruzione[i]->players[j]);
-                            player = malloc(sizeof(lunghezzaStringa));
-                            strcpy(player,squadreInCostruzione[i]->players[j]);
-                            json_object_array_add(json_array_accettati, json_object_new_string(player));
-                        }
-                    }
-                }
+                break;
             }
         }
 
-        // Creazione dell'oggetto principale che contiene i due array
-        struct json_object *root = json_object_new_object();
-        json_object_object_add(root, "richieste", json_array_richieste);
-        json_object_object_add(root, "accettati", json_array_accettati);
+        //Avviso squadra al completo
+        if(k > 3){
 
-        // Serializza l'oggetto JSON in una stringa
-        const char *json_string = json_object_to_json_string(root);
-        char delimitatore[] = "\n";
-        strcat(json_string,delimitatore);
+            int socketCapitano = squadreInCostruzione[indexSquadra]->capitano->socket;
+            send(socketCapitano, "rispostaDecisione\n", strlen("rispostaDecisione\n"),0);
+            send(socketCapitano, "full\n", strlen("full\n"),0);
 
-        // Invia la stringa JSON al client
-        char tipoMessaggio[50];
-        strcpy(tipoMessaggio,"AggiornamentoComposizioneSquadra\n");
-        send(client_socket, tipoMessaggio, strlen(tipoMessaggio), 0);
-        printf("TipoDiMessaggio: %s\n", tipoMessaggio);
-        send(client_socket, json_string, strlen(json_string), 0);
-        printf("Inviato aggiornamento composizione squadra: %s\n",json_string);
+            return;
+        }
+    }else{
 
-        //Libera mutex delle squadre
-        pthread_mutex_unlock(&mutexListaSquadre);
+        //Avverti il client di essere stato rimosso
+        int socketPlayer = playersConnessi[indexPlayer]->socket;
+        send(socketPlayer, "rimozione\n", strlen("rimozione\n"),0);
 
-        //Metti il thread in attesa
-        aggiornamentoListe = 0;
     }
+
+    int socketCapitano = squadreInCostruzione[indexSquadra]->capitano->socket;
+    send(socketCapitano, "rispostaDecisione\n", strlen("rispostaDecisione\n"),0);
+    send(socketCapitano, "ok\n", strlen("ok\n"),0);
+
+    return;
+
 }
+
+
+
 

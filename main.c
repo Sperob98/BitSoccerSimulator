@@ -24,8 +24,6 @@ pthread_cond_t condPlayers = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutexSquadra = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condSquadra = PTHREAD_COND_INITIALIZER;
 
-pthread_mutex_t mutexDecisioneCap = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t condDecisioneCap = PTHREAD_COND_INITIALIZER;
 
 void *gestione_richieste_client(void *arg){
 
@@ -66,20 +64,6 @@ void *gestione_richieste_client(void *arg){
 
                 }
 
-                /*thread_data *argThread;
-                    argThread = (thread_data *)malloc(sizeof(thread_data));
-
-                    if(argThread != NULL){
-
-                        argThread->clientSock = client_sock;
-                        strcpy(argThread->messaggio,client_message);
-
-                        if(pthread_create(&(argThread->thread_id),NULL,send_aggiornamento_composizione_squadre,(void*)argThread) < 0){
-
-                            perror("Errore creazione thread");
-                            exit(EXIT_FAILURE);
-                        }
-                    }*/
 
             }else if(strcmp(tipoRIchiesta,"getSquadreInCostruzione")==0) {
 
@@ -92,30 +76,47 @@ void *gestione_richieste_client(void *arg){
                     perror("Errore creazione thread");
                     exit(EXIT_FAILURE);
                 }
+
             }else if(strcmp(tipoRIchiesta,"partecipazioneSquadra") == 0){
 
                 printf("Richiesta di parcetipazione a una squadra\n");
 
+                //Acquisizione mutex
+                pthread_mutex_lock(&mutexListaSquadre);
+                pthread_mutex_lock(&mutexPlayers);
+
                 aggiungi_richiesta_partecipazione_squadra(client_message,client_sock);
 
-                /*thread_data *argThread;
-                argThread = (thread_data *)malloc(sizeof(thread_data));
+                //Rilascio mutex
+                pthread_mutex_unlock(&mutexListaSquadre);
+                pthread_mutex_unlock(&mutexPlayers);
 
-                if(argThread != NULL){
-
-                    argThread->clientSock = client_sock;
-                    strcpy(argThread->messaggio,client_message);
-
-                    if(pthread_create(&(argThread->thread_id),NULL,aggiungi_richiestaPartecipazione_squadra,(void*)argThread) < 0){
-
-                        perror("Errore creazione thread");
-                        pthread_exit(NULL);
-                    }
-
-                }*/
             }else if(strcmp(tipoRIchiesta,"decisioneCapitano") == 0){
 
-                gestione_decisioneCapitano(client_message);
+                printf("Richiesta decisione capitano\n");
+
+                //Acquisizione mutex
+                pthread_mutex_lock(&mutexListaSquadre);
+                pthread_mutex_lock(&mutexPlayers);
+
+                aggiornamento_composizione_squadra(client_message);
+
+                //Estrazione della squadra dal messaggio
+                struct json_object *parsed_json;
+                parsed_json = json_tokener_parse(client_message);
+                json_object *nomeSquadra;
+                json_object_object_get_ex(parsed_json, "squadra", &nomeSquadra);
+
+                //Avverti i client della squadra dell'aggiornamento
+                send_aggiornamento_composizione_squadra(json_object_get_string(nomeSquadra));
+
+                //Rilascio mutex
+                pthread_mutex_unlock(&mutexListaSquadre);
+                pthread_mutex_unlock(&mutexPlayers);
+
+                //Sveglia il thread aggiornamenti squadre per aggiornare il numero di partecipanti
+                pthread_cond_broadcast(&condListaSquadre);
+                printf("Avvertiti i client di eventuali aggiornamento del numero di partecianti\n");
             }
     }
 }
