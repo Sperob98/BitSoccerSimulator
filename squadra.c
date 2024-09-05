@@ -12,6 +12,7 @@
 
 
 char* serializza_squadra(const squadra* squadra) {
+
     json_object *jobj = json_object_new_object();
     json_object_object_add(jobj, "nomeSquadra", json_object_new_string(squadra->nomeSquadra));
     json_object_object_add(jobj, "capitano", json_object_new_int(squadra->capitano));
@@ -525,6 +526,125 @@ void aggiornamento_composizione_squadra(char *messaggio){
 
 }
 
+int cerca_squadra_match(char *messaggio, int sockCapitano){
 
+    //Deserializzazione del messaggio
+    struct json_object *parsed_json;
+    parsed_json = json_tokener_parse(messaggio);
 
+    json_object *nomeSquadra;
 
+    json_object_object_get_ex(parsed_json, "squadra", &nomeSquadra);
+
+    char *squadraString = malloc(strlen(json_object_get_string(nomeSquadra)) + 1);
+    strcpy(squadraString,json_object_get_string(nomeSquadra));
+
+    //Cerca l'indice della squadra che ha chiesto il match nell'array delle squadreInCostruzione
+    int indexSquadreInCostruzione;
+    for(indexSquadreInCostruzione=0; indexSquadreInCostruzione<50; indexSquadreInCostruzione++){
+
+        if(squadreInCostruzione[indexSquadreInCostruzione] != NULL){
+
+            int risultatoCmp = strcmp(squadreInCostruzione[indexSquadreInCostruzione]->nomeSquadra,squadraString);
+            if(risultatoCmp == 0) break;
+        }
+    }
+
+    if(indexSquadreInCostruzione > 49){ //Caso fallimento nella ricerca della squadra
+
+        printf("Stato richiesta match fallito\n");
+
+        //Avverti capitano del fallimento della richiesta
+        send(sockCapitano,"rispostaAlCapitano\n", strlen("rispostaAlCapitano\n"),0);
+        send(sockCapitano,"ko\n", strlen("ko\n"),0);
+
+        return -2;
+    }
+
+    //Cerca se nell'array delle squadre pronte c'è una squadra pronta (diversa dalla squadra che ha chiesto il match)
+    int matchTrovato = 0;
+    int indexSquadrePronte;
+    for(indexSquadrePronte=0; indexSquadrePronte<15; indexSquadrePronte++){
+
+        if(squadreComplete[indexSquadrePronte] != NULL){
+
+            if(strcmp(squadreComplete[indexSquadrePronte]->nomeSquadra, squadraString) != 0){
+
+                matchTrovato = 1;
+                break;
+            }
+        }
+    }
+
+    //Se match trovato aggiungi partita e libera gli array squadreIncostruzione/Pronte
+    if(matchTrovato == 1){
+
+        int i;
+        for(i=0; i<5; i++){ //Aggiunge partita nell'array delle partite
+
+            if(partite[i] == NULL){
+
+                partite[i] = malloc(sizeof(partita));
+                partite[i]->squadra_A = squadreInCostruzione[indexSquadreInCostruzione];
+                partite[i]->squadra_B = squadreComplete[indexSquadrePronte];
+                strcpy(partite[i]->inizioTurno,"null");
+                printf("Aggiunta partita: %s vs %s\n",squadraString,squadreComplete[indexSquadrePronte]->nomeSquadra);
+                break;
+            }
+        }
+
+        if(i>4){ //Fallimento caso array partite pieno
+
+            //Avverti il capitano che la richiesta è fallita
+            send(sockCapitano,"rispostaAlCapitano\n", strlen("rispostaAlCapitano\n"),0);
+            send(sockCapitano,"ko\n", strlen("ko\n"),0);
+
+            printf("Stato richiesta match fallito\n");
+
+            return -2;
+        }
+
+        //Libera gli array
+        squadreInCostruzione[indexSquadreInCostruzione] = NULL;
+        squadreComplete[indexSquadrePronte] = NULL;
+
+        //Avverti il capitano che la richiesta ha avuto successo
+        send(sockCapitano,"rispostaAlCapitano\n", strlen("rispostaAlCapitano\n"),0);
+        send(sockCapitano,"ok\n", strlen("ok\n"),0);
+
+        //Ritorna indice della partita creata
+        return i;
+
+    }else{//Aggiungi squadra nelle squadre pronte
+
+        int i;
+        for(i=0; i<15; i++){
+
+            if(squadreComplete[i] == NULL){
+
+                squadreComplete[i] = squadreInCostruzione[indexSquadreInCostruzione];
+                squadreInCostruzione[indexSquadreInCostruzione] = NULL;
+
+                printf("Aggiunta la squadra %s in attesa di match\n",squadraString);
+
+                //Avverti il client che la richiesta ha avuto successo
+                send(sockCapitano,"rispostaAlCapitano\n", strlen("rispostaAlCapitano\n"),0);
+                send(sockCapitano,"ok\n", strlen("ok\n"),0);
+
+                return -1;;
+            }
+        }
+
+        if(i > 14){
+
+            //Avverti il capitano della richiesta
+            send(sockCapitano,"rispostaAlCapitano\n", strlen("rispostaAlCapitano\n"),0);
+            send(sockCapitano,"ko\n", strlen("ko\n"),0);
+
+            printf("Stato richiesta match fallito\n");
+
+        }
+
+        return -2;
+    }
+}

@@ -30,14 +30,7 @@ void send_aggiornamento_composizione_squadra(char *nomeSquadra);
 
 void aggiornamento_composizione_squadra(char *messaggio);
 
+int cerca_squadra_match(char *messaggio,int sockCapitano);
 
-
-/////Da cancellare
-
-void *aggiungi_richiestaPartecipazione_squadra(void* argThread);
-
-void gestione_partecipazione_squadra(char *messaggio);
-
-void *send_aggiornamento_composizione_squadre(void* arg);
 
 #endif

@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include "squadra.h"
 #include "player.h"
+#include "partita.h"
 #include "gestioneConnessioni.h"
 #include "variabiliGlobali.h"
 #include "gestioneThread.h"
@@ -21,9 +23,13 @@ player *playersConnessi[50];//Array di tutti gli utenti connnessi
 pthread_mutex_t mutexPlayers = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condPlayers = PTHREAD_COND_INITIALIZER;
 
-pthread_mutex_t mutexSquadra = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t condSquadra = PTHREAD_COND_INITIALIZER;
+squadra *squadreComplete[15];//Array delle squadre complete e in attesa di match
+pthread_mutex_t mutexSquadreAttesa = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t condSquadreAttesa = PTHREAD_COND_INITIALIZER;
 
+partita *partite[5];//Array delle partite in corso
+pthread_mutex_t mutexPartite = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t condPartite = PTHREAD_COND_INITIALIZER;
 
 void *gestione_richieste_client(void *arg){
 
@@ -35,10 +41,27 @@ void *gestione_richieste_client(void *arg){
     while(1){
 
         //Lettura messaggio del client
-            if (recv(client_sock, client_message, 2000, 0) < 0) {
+            if (recv(client_sock, client_message, 2000, 0) < 0) { //Gestione disconessione client
+
                 printf("Ricezione fallita\n");
+
+                //Acquisizione mutex
+                pthread_mutex_lock(&mutexListaSquadre);
+                pthread_mutex_lock(&mutexPlayers);
+
+                gestione_disconessione_client(client_sock);
+
+                //Rilascio mutex
+                pthread_mutex_unlock(&mutexListaSquadre);
+                pthread_mutex_unlock(&mutexPlayers);
+
                 close(client_sock);
+
                 printf("Client disconesso\n");
+
+                pthread_cond_broadcast(&condListaSquadre);
+                printf("Avvertiti i client di eventuali squadre sciolte\n");
+
                 pthread_exit(NULL);
             }
 
@@ -117,6 +140,45 @@ void *gestione_richieste_client(void *arg){
                 //Sveglia il thread aggiornamenti squadre per aggiornare il numero di partecipanti
                 pthread_cond_broadcast(&condListaSquadre);
                 printf("Avvertiti i client di eventuali aggiornamento del numero di partecianti\n");
+
+            }else if(strcmp(tipoRIchiesta,"cercaMatch") == 0){
+
+                printf("Richiesta cerca match\n");
+
+                //Acquisizione mutex
+                pthread_mutex_lock(&mutexListaSquadre);
+                pthread_mutex_lock(&mutexPlayers);
+                pthread_mutex_lock(&mutexSquadreAttesa);
+                pthread_mutex_lock(&mutexPartite);
+
+                //Cerca squadra avversaria e avvisa l client della ricerca match
+                int indexPartita = cerca_squadra_match(client_message,client_sock);
+                avvisa_players_stato_match(indexPartita,client_message);
+
+                //Rilascio mutex
+                pthread_mutex_unlock(&mutexListaSquadre);
+                pthread_mutex_unlock(&mutexPlayers);
+                pthread_mutex_unlock(&mutexSquadreAttesa);
+                pthread_mutex_unlock(&mutexPartite);
+
+            }else if(strcmp(tipoRIchiesta,"inizioTurno") == 0){
+
+                pid_t pid = fork();
+
+                if(pid < 0){
+
+                    printf("Errore creazione processo partita\n");
+                }
+
+                if(pid == 0){
+
+                printf("sono nel processo figlio\n");
+
+
+
+                }else if(pid > 0){
+
+                }
             }
     }
 }

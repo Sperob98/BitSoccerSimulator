@@ -47,6 +47,8 @@ void aggiungi_utente_connesso(char *messaggio, int client_socket){
         strcpy(newPlayer->nomePlayer,nomePlayerString);
         newPlayer->socket = client_socket;
 
+        newPlayer->infortunato = 0;
+
         for(int i=0; i<50; i++){
 
             if(playersConnessi[i] == NULL){

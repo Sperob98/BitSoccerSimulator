@@ -42,6 +42,10 @@
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="partita.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="partita.h" />
 		<Unit filename="player.c">
 			<Option compilerVar="CC" />
 		</Unit>
