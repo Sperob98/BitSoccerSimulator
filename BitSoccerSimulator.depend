@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1725534111 source:/home/rob/Desktop/BitSoccerSimulator/main.c
+1725786352 source:/home/rob/Desktop/BitSoccerSimulator/main.c
 	<json-c/json.h>
 	<stdio.h>
 	<stdlib.h>
@@ -15,7 +15,7 @@
 	"variabiliGlobali.h"
 	"gestioneThread.h"
 
-1725556528 source:/home/rob/Desktop/BitSoccerSimulator/squadra.c
+1725704834 source:/home/rob/Desktop/BitSoccerSimulator/squadra.c
 	"squadra.h"
 	"variabiliGlobali.h"
 	"gestioneThread.h"
@@ -60,11 +60,16 @@
 	<unistd.h>
 	<json-c/json.h>
 
-1725574063 /home/rob/Desktop/BitSoccerSimulator/partita.h
+1725704814 /home/rob/Desktop/BitSoccerSimulator/partita.h
 	"squadra.h"
 
-1725445351 source:/home/rob/Desktop/BitSoccerSimulator/partita.c
+1725910354 source:/home/rob/Desktop/BitSoccerSimulator/partita.c
 	"partita.h"
 	"variabiliGlobali.h"
+	"player.h"
 	<json-c/json.h>
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	<pthread.h>
 

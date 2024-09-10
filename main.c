@@ -163,22 +163,42 @@ void *gestione_richieste_client(void *arg){
 
             }else if(strcmp(tipoRIchiesta,"inizioTurno") == 0){
 
-                pid_t pid = fork();
+                int indexPartita = get_index_partita(client_message);
 
-                if(pid < 0){
+                pthread_mutex_lock(&mutexPartite);
 
-                    printf("Errore creazione processo partita\n");
+                partita *match = partite[indexPartita];
+
+                //Avvia il processo di nuova partita una sola volta
+                if(match->inizioPartita != 1){
+
+                    match->inizioPartita = 1;
+
+                    pthread_mutex_unlock(&mutexPartite);
+
+                    pid_t pid = fork();
+
+                    if(pid < 0){
+
+                        printf("Errore creazione processo partita\n");
+                    }
+
+                    if(pid == 0){
+
+                    printf("sono nel processo figlio\n");
+
+                    //Inizializza il seed con l'ora corrente
+                    srand(time(NULL));
+
+                    assegna_turno_iniziale_e_avvia_match(client_message);
+
+                    }else if(pid > 0){
+
+                    }
                 }
 
-                if(pid == 0){
+                pthread_mutex_unlock(&mutexPartite);
 
-                printf("sono nel processo figlio\n");
-
-
-
-                }else if(pid > 0){
-
-                }
             }
     }
 }

@@ -588,6 +588,8 @@ int cerca_squadra_match(char *messaggio, int sockCapitano){
                 partite[i]->squadra_A = squadreInCostruzione[indexSquadreInCostruzione];
                 partite[i]->squadra_B = squadreComplete[indexSquadrePronte];
                 strcpy(partite[i]->inizioTurno,"null");
+                partite[i]->finePartita = 0;
+                partite[i]->inizioPartita = 0;
                 printf("Aggiunta partita: %s vs %s\n",squadraString,squadreComplete[indexSquadrePronte]->nomeSquadra);
                 break;
             }

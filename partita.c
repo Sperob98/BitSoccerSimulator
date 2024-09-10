@@ -151,12 +151,20 @@ void avvisa_players_stato_match(int indexPartita, char *messaggio){
     }
 }
 
+void *avviaTimer(void *arg){
+
+    int indexPartita = *(int*) arg;
+
+    sleep(5*60);
+
+    partita *match = partite[indexPartita];
+
+    match->finePartita = 1;
+}
+
 int getEvento(){
 
     int evento;
-
-    //Inizializza il seed con l'ora corrente
-    srand(time(NULL));
 
     //Numero tra 0 e 99
     int random_number = rand() % 100; // Numero tra 0 e 99
@@ -164,10 +172,10 @@ int getEvento(){
     //Simula una probabilità del 40% per l'evento tiro
     if(random_number < 40) evento = 0;
 
-    //Simula una probabilità del 40% per l'evento dribbling
-    else if(random_number < 80) evento = 1;
+    //Simula una probabilità del 50% per l'evento dribbling
+    else if(random_number < 90) evento = 1;
 
-    //Simula una probabilità del 20% per l'evento infortunio
+    //Simula una probabilità del 10% per l'evento infortunio
     else evento = 2;
 
     return evento;
@@ -178,9 +186,6 @@ int esitoTiro(){
 
     int esito;
 
-    //Inizializza il seed con l'ora corrente
-    srand(time(NULL));
-
     //Numero tra 0 e 99
     int random_number = rand() % 100; // Numero tra 0 e 99
 
@@ -189,29 +194,31 @@ int esitoTiro(){
 
     //Simula una probabilità del 60% per tiro fallito
     else esito = 0;
+
+    return esito;
 }
 
 int esitoDribbling(){
 
     int esito;
 
-    //Inizializza il seed con l'ora corrente
-    srand(time(NULL));
-
     //Numero tra 0 e 99
     int random_number = rand() % 100; // Numero tra 0 e 99
 
-    //Simula una probabilità del 40% di fsuccesso
+    //Simula una probabilità del 40% di successo
     if(random_number < 40) esito = 1;
 
-    //Simula una probabilità del 60% per dribbling fallito
+    //Simula una probabilità del 30% per dribbling fallito
     else esito = 0;
+
+    return esito;
 }
 
 void tira(char *player, int indexPartita, int *scoreA, int *scoreB){
 
 
     printf("%s tenta il tiro\n", player);
+    sleep(1);
 
     partita *match = partite[indexPartita];
     int turnoSquadra = getSquadraFromPlayer(player,indexPartita);
@@ -244,6 +251,8 @@ void tira(char *player, int indexPartita, int *scoreA, int *scoreB){
             json_object_object_add(jobj, "tipoEvento", json_object_new_string("tiro"));
             json_object_object_add(jobj, "esitoTiro", json_object_new_string("goal"));
             json_object_object_add(jobj, "turnoPlayer", json_object_new_string(player));
+            json_object_object_add(jobj, "turnoSquadra", json_object_new_int(turnoSquadra));
+
 
             const char *json_str = json_object_to_json_string(jobj);
             char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
@@ -255,33 +264,38 @@ void tira(char *player, int indexPartita, int *scoreA, int *scoreB){
             if(turnoSquadra == 0){
 
                 printf("punto per la squadra %s\n",match->squadra_A->nomeSquadra);
-                *scoreA++;
+                (*scoreA)++;
 
             }else{
 
                 printf("punto per la squadra %s\n",match->squadra_B->nomeSquadra);
-                *scoreB++;
+                (*scoreB)++;
             }
 
             printf("nuovo risultato: %d-%d\n",*scoreA,*scoreB);
+            printf("\n");
+            sleep(1);
 
         }
 }
 
 void dribbling(char *player,int indexPartita, int *scoreA, int *scoreB){
 
-    printf("%s tenta il dribbling\n");
+    printf("%s tenta il dribbling\n", player);
+    sleep(1);
 
     int esito = esitoDribbling();
 
     if(esito == 0){
 
         printf("dribbling fallito, il possesso palla passa all'avversario");
+        printf("\n");
+        sleep(1);
 
         //Costruisci messaggio
         json_object *jobj = json_object_new_object();
         json_object_object_add(jobj, "tipoEvento", json_object_new_string("dribbling"));
-        json_object_object_add(jobj, "esitoTiro", json_object_new_string("fallito"));
+        json_object_object_add(jobj, "esitoDribbling", json_object_new_string("fallito"));
         json_object_object_add(jobj, "turnoPlayer", json_object_new_string(player));
 
         const char *json_str = json_object_to_json_string(jobj);
@@ -293,13 +307,29 @@ void dribbling(char *player,int indexPartita, int *scoreA, int *scoreB){
 
     }else{
 
-        printf("dribbling fantastisco\n");
+        printf("dribbling fantastisco,ha spazio per un tiro\n");
+        sleep(1);
 
+        //Costruisci messaggio
+        json_object *jobj = json_object_new_object();
+        json_object_object_add(jobj, "tipoEvento", json_object_new_string("dribbling"));
+        json_object_object_add(jobj, "esitoDribbling", json_object_new_string("ok"));
+        json_object_object_add(jobj, "turnoPlayer", json_object_new_string(player));
+
+        const char *json_str = json_object_to_json_string(jobj);
+        char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+        json_object_put(jobj); // Dealloca l'oggetto JSON
+        strcat(messaggioJSON,"\n");
+
+        sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+        sleep(1);
+
+        sendEventoPartecipantiMatch("evento\n",indexPartita);
         tira(player,indexPartita, scoreA, scoreB);
     }
 }
 
-void infortunio(void *infoThread){
+void *infortunio(void *infoThread){
 
 
     //Esrazione parametri thread
@@ -317,13 +347,13 @@ void infortunio(void *infoThread){
     if(strcmp(capitanoA,playerString) == 0)
         playerInfortunato = match->squadra_A->capitano;
 
-    if(playerInfortunato != NULL){
+    if(playerInfortunato == NULL){
 
         if(strcmp(capitanoB,playerString) == 0)
             playerInfortunato = match->squadra_B->capitano;
     }
 
-    if(playerInfortunato != NULL){
+    if(playerInfortunato == NULL){
 
         for(int i=0; i<4; i++){
 
@@ -344,8 +374,6 @@ void infortunio(void *infoThread){
         }
     }
 
-    //Inizializza il seed con l'ora corrente
-    srand(time(NULL));
 
     int random_number = rand() % 4; // Numero tra 0 e 4 che rappresenzano i minuti di infortunio
     random_number++;
@@ -387,6 +415,7 @@ void infortunio(void *infoThread){
     json_object_put(jobj2); // Dealloca l'oggetto JSON
     strcat(messaggioJSON2,"\n");
 
+    sendEventoPartecipantiMatch("evento\n",indexPartita);
     sendEventoPartecipantiMatch(messaggioJSON2,indexPartita);
 }
 
@@ -400,9 +429,27 @@ int getSquadraFromPlayer(char *player, int indexPartita){
 
     for(int i=0; i<4; i++){
 
-        if(strcmp(player,match->squadra_A->players[i]) == 0) return 0;
+        if(strcmp(player,match->squadra_A->players[i]->nomePlayer) == 0) return 0;
 
-        if(strcmp(player,match->squadra_B->players[i]) == 0) return 1;
+        if(strcmp(player,match->squadra_B->players[i]->nomePlayer) == 0) return 1;
+    }
+
+    return -1;
+}
+
+int getIndexPlayer(char *player, int indexPartita){
+
+    partita *match = partite[indexPartita];
+
+    if(strcmp(player,match->squadra_A->capitano->nomePlayer) == 0) return 4;
+
+    if(strcmp(player,match->squadra_B->capitano->nomePlayer) == 0) return 4;
+
+    for(int i=0; i<4; i++){
+
+        if(strcmp(player,match->squadra_A->players[i]->nomePlayer) == 0) return i;
+
+        if(strcmp(player,match->squadra_B->players[i]->nomePlayer) == 0) return i;
     }
 
     return -1;
@@ -425,6 +472,126 @@ void sendEventoPartecipantiMatch(char *messaggio, int indexPartita){
 
         send(sockPlayerA,messaggio,strlen(messaggio),0);
         send(sockPlayerB,messaggio,strlen(messaggio),0);
+    }
+}
+
+char *assegna_turno(int turnoSquadraAttuale, int indexPartita, int *indiceTurnoA,int *indiceTurnoB){
+
+    partita *match = partite[indexPartita];
+
+    //-----------Assegnare il turno alla squadra B poiché il turno attuale è della squadra A---------------------
+
+    if(turnoSquadraAttuale == 0){
+
+        (*indiceTurnoB)++;
+        int indiceTurnoModulato = (*indiceTurnoB)%5;
+        char *turnoPlayer;
+        char *turnoPlayerReturn;
+        player *playerInfo;
+
+        while(1){
+
+            //Assegna turno al capitano se non è infortunato
+            if(indiceTurnoModulato == 4){
+
+                playerInfo = match->squadra_B->capitano;
+
+                if(playerInfo->infortunato != 1){
+
+                    turnoPlayer = malloc(strlen(playerInfo->nomePlayer)+1);
+                    turnoPlayerReturn = malloc(strlen(playerInfo->nomePlayer)+1);
+                    strcpy(turnoPlayer,playerInfo->nomePlayer);
+                    strcpy(turnoPlayerReturn,playerInfo->nomePlayer);
+
+                    strcat(turnoPlayer,"\n");
+
+                    sendEventoPartecipantiMatch("assegnazioneTurno\n",indexPartita);
+                    sendEventoPartecipantiMatch(turnoPlayer,indexPartita);
+
+                    return turnoPlayerReturn;
+                }
+
+            }else{
+
+                playerInfo = match->squadra_B->players[indiceTurnoModulato];
+
+                if(playerInfo->infortunato != 1){
+
+                    turnoPlayer = malloc(strlen(playerInfo->nomePlayer)+1);
+                    turnoPlayerReturn = malloc(strlen(playerInfo->nomePlayer)+1);
+                    strcpy(turnoPlayer,playerInfo->nomePlayer);
+                    strcpy(turnoPlayerReturn,playerInfo->nomePlayer);
+
+                    strcat(turnoPlayer,"\n");
+
+                    sendEventoPartecipantiMatch("assegnazioneTurno\n",indexPartita);
+                    sendEventoPartecipantiMatch(turnoPlayer,indexPartita);
+
+                    return turnoPlayerReturn;
+                }
+            }
+
+            //Se arriva qui non è stato assegnato il turno quindi fa una nuova iterazione con il turno successivo
+            *indiceTurnoB++;
+            indiceTurnoModulato = (*indiceTurnoB)%5;
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+   //--------------------------------ASSENAZIONE TURNO PLYER SQUADRA A---------------------------------------------------
+
+   *indiceTurnoA++;
+    int indiceTurnoModulato = (*indiceTurnoA)%5;
+    char *turnoPlayer;
+    char *turnoPlayerReturn;
+    player *playerInfo;
+
+    while(1){
+
+        //Assegna turno al capitano se non è infortunato
+        if(indiceTurnoModulato == 4){
+
+            playerInfo = match->squadra_A->capitano;
+
+            if(playerInfo->infortunato != 1){
+
+                turnoPlayer = malloc(strlen(playerInfo->nomePlayer)+1);
+                turnoPlayerReturn = malloc(strlen(playerInfo->nomePlayer)+1);
+                strcpy(turnoPlayer,playerInfo->nomePlayer);
+                strcpy(turnoPlayerReturn,playerInfo->nomePlayer);
+
+                strcat(turnoPlayer,"\n");
+
+                sendEventoPartecipantiMatch("assegnazioneTurno\n",indexPartita);
+                sendEventoPartecipantiMatch(turnoPlayer,indexPartita);
+
+                return turnoPlayerReturn;
+            }
+
+        }else{
+
+            playerInfo = match->squadra_A->players[indiceTurnoModulato];
+
+            if(playerInfo->infortunato != 1){
+
+                turnoPlayer = malloc(strlen(playerInfo->nomePlayer)+1);
+                turnoPlayerReturn = malloc(strlen(playerInfo->nomePlayer)+1);
+                strcpy(turnoPlayer,playerInfo->nomePlayer);
+                strcpy(turnoPlayerReturn,playerInfo->nomePlayer);
+
+                strcat(turnoPlayer,"\n");
+
+                sendEventoPartecipantiMatch("assegnazioneTurno\n",indexPartita);
+                sendEventoPartecipantiMatch(turnoPlayer,indexPartita);
+
+                return turnoPlayerReturn;
+            }
+        }
+
+        //Se arriva qui non è stato assegnato il turno quindi fa una nuova iterazione con il turno successivo
+        *indiceTurnoB++;
+        indiceTurnoModulato = (*indiceTurnoB)%5;
     }
 }
 
@@ -479,6 +646,30 @@ void simulaMatch(int indexPartita){
     int scoreB = 0;
     int evento;
     int turnoSquadra = getSquadraFromPlayer(playerInizioTurnoString,indexPartita);
+    int indiceTurnoA;
+    int indiceTurnoB;
+
+    if(turnoSquadra == 0){
+
+        indiceTurnoB = 4;
+        indiceTurnoA = getIndexPlayer(playerInizioTurno,indexPartita);
+
+    }else{
+
+        indiceTurnoA = 4;
+        indiceTurnoB = getIndexPlayer(playerInizioTurno,indexPartita);
+    }
+
+    //Gestione timer
+    pthread_t thread;
+    int *indexPartitaThreadTime = malloc(sizeof(int));
+    *indexPartitaThreadTime = indexPartita;
+
+    //Avvia timer
+    if (pthread_create(&thread, NULL, avviaTimer, (void*)indexPartitaThreadTime) != 0) {
+
+        printf(stderr, "Errore nella creazione del thread infortunio\n");
+    }
 
     printf("Match iniziato, 5 minuti per la fine\n");
     printf("Possesso palla di %s\n", playerInizioTurnoString);
@@ -499,7 +690,7 @@ void simulaMatch(int indexPartita){
 
         pthread_t thread;
         argomentiThreadInfortunio *infoThread = malloc(sizeof(argomentiThreadInfortunio));
-        infoThread = playerInizioTurnoString;
+        infoThread->player = playerInizioTurnoString;
         infoThread->indexPartita = indexPartita;
 
 
@@ -510,11 +701,49 @@ void simulaMatch(int indexPartita){
         }
     }
 
+    sleep(10);
 
-    while(fineMatch != 1){
+    while(match->finePartita != 1){
+
+        char *turnoPlayer;
+        turnoPlayer = assegna_turno(turnoSquadra,indexPartita,&indiceTurnoA,&indiceTurnoB);
+
+        if(turnoSquadra == 0) turnoSquadra = 1;
+        else turnoSquadra = 0;
+
+        printf("%s ottiene il possesso palla\n",turnoPlayer);
+
+        evento = getEvento();
+
+        sendEventoPartecipantiMatch("evento\n",indexPartita);
+
+        if(evento == 0){
+
+            tira(turnoPlayer,indexPartita,&scoreA,&scoreB);
+
+        }else if(evento == 1){
+
+            dribbling(turnoPlayer,indexPartita,&scoreA,&scoreB);
+
+        }else{
+
+            pthread_t thread;
+            argomentiThreadInfortunio *infoThread = malloc(sizeof(argomentiThreadInfortunio));
+            infoThread->player = turnoPlayer;
+            infoThread->indexPartita = indexPartita;
 
 
+            // Crea il thread e passa il puntatore alla struct come argomento
+            if (pthread_create(&thread, NULL, infortunio, (void*)infoThread) != 0) {
+
+                printf(stderr, "Errore nella creazione del thread infortunio\n");
+            }
+        }
+
+        sleep(10);
     }
+
+    printf("\n tempo scaduto, match concluso\n");
 }
 
 void assegna_turno_iniziale_e_avvia_match(char *messaggio){
@@ -534,7 +763,6 @@ void assegna_turno_iniziale_e_avvia_match(char *messaggio){
     int indexPartita = json_object_get_int(indexPartita);
     char playerInizioTurno[30];
     strcpy(playerInizioTurno,json_object_get_string(playerInizioTurnoJSON));
-    strcat(playerInizioTurno,"\n");
     char squadraInizioTurno[30];
     strcpy(squadraInizioTurno,json_object_get_string(squadraInizioTurnoJSON));
     strcat(squadraInizioTurno,"\n");
@@ -543,6 +771,8 @@ void assegna_turno_iniziale_e_avvia_match(char *messaggio){
     if(strcmp(partite[indexPartita]->inizioTurno,"null") == 0){
 
         strcpy(partite[indexPartita]->inizioTurno,playerInizioTurno);
+        strcat(playerInizioTurno,"\n");
+
         partita *nuovaPartita = partite[indexPartita];
 
         for(int i=0; i<4; i++){
@@ -573,4 +803,19 @@ void assegna_turno_iniziale_e_avvia_match(char *messaggio){
         simulaMatch(indexPartita);
     }
 
+}
+
+int get_index_partita(char *messaggio){
+
+    //Deserializzazione del messaggio
+    struct json_object *parsed_json;
+    parsed_json = json_tokener_parse(messaggio);
+
+    json_object *indexPartitaJSON;
+
+    json_object_object_get_ex(parsed_json, "indexPartita", &indexPartitaJSON);
+
+    int indexPartita = json_object_get_int(indexPartita);
+
+    return indexPartita;
 }
