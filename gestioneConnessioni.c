@@ -83,9 +83,7 @@ void gestione_disconessione_client(int socket_disconessa){
 
             if(squadreInCostruzione[indexSquadra]->richiestePartecipazione[k] != NULL){
 
-                printf("test1\n");
                 int socket = squadreInCostruzione[indexSquadra]->richiestePartecipazione[k]->socket;
-                printf("test2\n");
                 send(socket,"abbandonoCapitano\n", strlen("abbandonoCapitano\n"),0);
             }
 
@@ -94,16 +92,21 @@ void gestione_disconessione_client(int socket_disconessa){
                 if(squadreInCostruzione[indexSquadra]->players[k] != NULL){
 
                     int socket = squadreInCostruzione[indexSquadra]->players[k]->socket;
-                    printf("test4\n");
                     send(socket,"abbandonoCapitano\n", strlen("abbandonoCapitano\n"),0);
                 }
             }
         }
 
+        free(squadreInCostruzione[indexSquadra]);
         squadreInCostruzione[indexSquadra] = NULL;
 
     }else if(trovato == 1){
 
         send_aggiornamento_composizione_squadra(squadreInCostruzione[indexSquadra]->nomeSquadra);
     }
+
+
+    //Libera username
+    free(playersConnessi[indexPlayer]);
+    playersConnessi[indexPlayer] = NULL;
 }

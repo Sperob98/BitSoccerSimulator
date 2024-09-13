@@ -6,6 +6,7 @@ typedef struct{
     char *nomePlayer;
     int socket;
     int infortunato;
+    int penalizzato;
 
 }player;
 

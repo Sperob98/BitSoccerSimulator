@@ -20,6 +20,14 @@ typedef struct{
 
 }argomentiThreadInfortunio;
 
+typedef struct{
+
+    int indexPartita;
+    int timeP;
+    char *player;
+
+}argomentiThreadPenalizzazione;
+
 
 void avvisa_players_stato_match(int indexPartita, char *messaggio);
 

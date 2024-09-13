@@ -100,6 +100,18 @@ int aggiungi_nuova_squadra(char *messaggio, int client_socket) {
 
     newSquadra->numeroPlayers = 1;
 
+    //Inizializza array players
+    for(int k=0; k<4; k++){
+
+        newSquadra->players[k] = NULL;
+    }
+
+    //Inizialliza array richieste
+     for(int k=0; k<50; k++){
+
+        newSquadra->richiestePartecipazione[k] = NULL;
+    }
+
     pthread_mutex_init(&(newSquadra->mutexSquadra), NULL);
 
     pthread_cond_init(&(newSquadra->condSquadra), NULL);
@@ -252,7 +264,7 @@ char *serializza_oggetto_composizione_squadre(int indexSquadra){
         for(int j=0; j<4; j++){
 
             if(squadreInCostruzione[indexSquadra]->players[j] != NULL){
-
+                printf("numero j: %d\n",j);
                 char playerAccettato[20];
                 strcpy(playerAccettato,squadreInCostruzione[indexSquadra]->players[j]->nomePlayer);
                 json_object_array_add(json_array_accettati, json_object_new_string(playerAccettato));
