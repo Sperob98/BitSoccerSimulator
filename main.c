@@ -194,10 +194,15 @@ void *gestione_richieste_client(void *arg){
 
                     }else if(pid > 0){
 
+                        wait(NULL);
+                        free(match);
+                        partite[indexPartita] = NULL;
                     }
-                }
 
-                pthread_mutex_unlock(&mutexPartite);
+                }else{
+
+                    pthread_mutex_unlock(&mutexPartite);
+                }
 
             }
     }

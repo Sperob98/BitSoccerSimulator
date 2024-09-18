@@ -2,24 +2,9 @@
 <CodeBlocks_layout_file>
 	<FileVersion major="1" minor="0" />
 	<ActiveTarget name="Debug" />
-	<File name="player.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="main.c" open="1" top="1" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="110" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="gestioneThread.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="165" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="partita.h" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="403" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="gestioneConnessioni.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="133" topLine="0" />
+			<Cursor1 position="7158" topLine="188" />
 		</Cursor>
 	</File>
 	<File name="variabiliGlobali.h" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -27,63 +12,82 @@
 			<Cursor1 position="141" topLine="0" />
 		</Cursor>
 	</File>
+	<File name="squadra.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="205" topLine="7" />
+		</Cursor>
+	</File>
 	<File name="gestioneConnessioni.c" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="133" topLine="0" />
+			<Cursor1 position="3203" topLine="0" />
 		</Cursor>
 		<Folding>
+			<Collapse line="4" />
 			<Collapse line="19" />
 		</Folding>
 	</File>
-	<File name="main.c" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="player.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="6858" topLine="22" />
+			<Cursor1 position="131" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="player.c" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="gestioneThread.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="1303" topLine="35" />
+			<Cursor1 position="165" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="partita.c" open="1" top="1" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="partita.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="24623" topLine="263" />
+			<Cursor1 position="396" topLine="10" />
+		</Cursor>
+	</File>
+	<File name="partita.c" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="23569" topLine="15" />
 		</Cursor>
 		<Folding>
 			<Collapse line="11" />
 			<Collapse line="58" />
 			<Collapse line="155" />
-			<Collapse line="166" />
-			<Collapse line="186" />
-			<Collapse line="202" />
-			<Collapse line="218" />
-			<Collapse line="283" />
-			<Collapse line="426" />
-			<Collapse line="444" />
-			<Collapse line="462" />
-			<Collapse line="482" />
-			<Collapse line="763" />
-			<Collapse line="822" />
+			<Collapse line="197" />
+			<Collapse line="217" />
+			<Collapse line="233" />
+			<Collapse line="249" />
+			<Collapse line="314" />
+			<Collapse line="364" />
+			<Collapse line="458" />
+			<Collapse line="636" />
+			<Collapse line="654" />
+			<Collapse line="672" />
+			<Collapse line="692" />
+			<Collapse line="812" />
+			<Collapse line="973" />
+			<Collapse line="1032" />
 		</Folding>
 	</File>
-	<File name="squadra.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="squadra.c" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="797" topLine="7" />
-		</Cursor>
-	</File>
-	<File name="squadra.c" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="20740" topLine="67" />
+			<Cursor1 position="21047" topLine="125" />
 		</Cursor>
 		<Folding>
 			<Collapse line="13" />
 			<Collapse line="32" />
-			<Collapse line="156" />
-			<Collapse line="179" />
-			<Collapse line="227" />
-			<Collapse line="275" />
-			<Collapse line="326" />
-			<Collapse line="411" />
+			<Collapse line="168" />
+			<Collapse line="191" />
+			<Collapse line="239" />
+			<Collapse line="287" />
+			<Collapse line="338" />
+			<Collapse line="423" />
 		</Folding>
+	</File>
+	<File name="gestioneConnessioni.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="133" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="player.c" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1339" topLine="23" />
+		</Cursor>
 	</File>
 </CodeBlocks_layout_file>
