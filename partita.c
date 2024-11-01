@@ -883,7 +883,7 @@ void simulaMatch(int indexPartita){
     //Avvia timer
     if (pthread_create(&thread, NULL, avviaTimer, (void*)indexPartitaThreadTime) != 0) {
 
-        printf(stderr, "Errore nella creazione del thread infortunio\n");
+        printf(stderr, "Errore nella creazione del thread time\n");
     }
 
     printf("Match iniziato, 5 minuti per la fine\n");
