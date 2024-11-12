@@ -1,18 +1,20 @@
 #ifndef SQUADRA_H
 #define SQUADRA_H
 
+#define SIZE_NAME_TEAM 128
+#define SIZE_ARRAY_TEAMS 50
+#define SIZE_ARRAY_PLAYER_PARTECIPANTI 4
+
 #include "player.h"
 #include <pthread.h>
 
 typedef struct{
 
-    char *nomeSquadra;
+    char nome_squadra[SIZE_NAME_TEAM];
     player *capitano;
-    player *players[4];
-    player *richiestePartecipazione[50];
+    player *players[SIZE_ARRAY_PLAYER_PARTECIPANTI];
+    player *richiestePartecipazione[SIZE_ARRAY_PLAYERS];
     int numeroPlayers;
-    pthread_mutex_t mutexSquadra;
-    pthread_cond_t condSquadra;
 
 }squadra;
 

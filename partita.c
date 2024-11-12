@@ -7,8 +7,6 @@
 #include <time.h>
 #include <pthread.h>
 
-static pthread_mutex_t mutexMsgEvento = PTHREAD_MUTEX_INITIALIZER;
-
 char *serializza_oggetto_info_match(int indexPartita){
 
     // Creazione array JSON
@@ -17,20 +15,20 @@ char *serializza_oggetto_info_match(int indexPartita){
 
 
     //Inizializzi array JSON
-    for(int i=0; i<4; i++){
+    for(int i=0; i<SIZE_ARRAY_PLAYER_PARTECIPANTI; i++){
 
-        char *playerA = partite[indexPartita]->squadra_A->players[i]->nomePlayer;
-        char *playerB = partite[indexPartita]->squadra_B->players[i]->nomePlayer;
+        char *playerA = partite[indexPartita]->squadra_A->players[i]->nome_player;
+        char *playerB = partite[indexPartita]->squadra_B->players[i]->nome_player;
         json_object_array_add(json_array_playersA,json_object_new_string(playerA));
         json_object_array_add(json_array_playersB,json_object_new_string(playerB));
 
     }
 
     //Creazione stignhe JSON
-    char *capitanoA = partite[indexPartita]->squadra_A->capitano->nomePlayer;
-    char *capitanoB = partite[indexPartita]->squadra_B->capitano->nomePlayer;
-    char *squadraA = partite[indexPartita]->squadra_A->nomeSquadra;
-    char *squadraB = partite[indexPartita]->squadra_B->nomeSquadra;
+    char *capitanoA = partite[indexPartita]->squadra_A->capitano->nome_player;
+    char *capitanoB = partite[indexPartita]->squadra_B->capitano->nome_player;
+    char *squadraA = partite[indexPartita]->squadra_A->nome_squadra;
+    char *squadraB = partite[indexPartita]->squadra_B->nome_squadra;
 
     struct json_object *json_capitanoA = json_object_new_string(capitanoA);
     struct json_object *json_capitanoB = json_object_new_string(capitanoB);
@@ -72,7 +70,7 @@ void avvisa_players_stato_match(int indexPartita, char *messaggio){
         send(clientCapitanoA, "avvioMatch\n", strlen("avvioMatch\n"),0);
         send(clientCapitanoA,jsonInfoMatch,strlen(jsonInfoMatch),0);
 
-        printf("Avvisato il capitano %s della squadra %s dell'avvio del match\n",partitaInAvvio->squadra_A->capitano->nomePlayer,partitaInAvvio->squadra_A->nomeSquadra);;
+        printf("Avvisato il capitano %s della squadra %s dell'avvio del match\n",partitaInAvvio->squadra_A->capitano->nome_player,partitaInAvvio->squadra_A->nome_squadra);
 
         //Avverti capitano squadra B
         int clientCapitanoB = partitaInAvvio->squadra_B->capitano->socket;
@@ -80,10 +78,10 @@ void avvisa_players_stato_match(int indexPartita, char *messaggio){
         send(clientCapitanoB, "avvioMatch\n", strlen("avvioMatch\n"),0);
         send(clientCapitanoB,jsonInfoMatch,strlen(jsonInfoMatch),0);
 
-        printf("Avvisato il capitano %s della squadra %s dell'avvio del match\n",partitaInAvvio->squadra_B->capitano->nomePlayer,partitaInAvvio->squadra_B->nomeSquadra);
+        printf("Avvisato il capitano %s della squadra %s dell'avvio del match\n",partitaInAvvio->squadra_B->capitano->nome_player,partitaInAvvio->squadra_B->nome_squadra);
 
         //Avverti i player accettati
-        for(int i=0; i<4; i++){
+        for(int i=0; i<SIZE_ARRAY_PLAYER_PARTECIPANTI; i++){
 
             int playerA = partitaInAvvio->squadra_A->players[i]->socket;
             int playerB = partitaInAvvio->squadra_B->players[i]->socket;
@@ -93,13 +91,13 @@ void avvisa_players_stato_match(int indexPartita, char *messaggio){
             send(playerA, "avvioMatch\n", strlen("avvioMatch\n"),0);
             send(playerA,jsonInfoMatch,strlen(jsonInfoMatch),0);
 
-            printf("Avvisato il player %s della squadra %s dell'avvio del match\n",partitaInAvvio->squadra_A->players[i]->nomePlayer,partitaInAvvio->squadra_A->nomeSquadra);
+            printf("Avvisato il player %s della squadra %s dell'avvio del match\n",partitaInAvvio->squadra_A->players[i]->nome_player,partitaInAvvio->squadra_A->nome_squadra);
 
             send(playerB,"rispostaMatch\n", strlen("rispostaMatch\n"),0);
             send(playerB, "avvioMatch\n", strlen("avvioMatch\n"),0);
             send(playerB,jsonInfoMatch,strlen(jsonInfoMatch),0);
 
-            printf("Avvisato il player %s della squadra %s dell'avvio del match\n",partitaInAvvio->squadra_B->players[i]->nomePlayer,partitaInAvvio->squadra_B->nomeSquadra);
+            printf("Avvisato il player %s della squadra %s dell'avvio del match\n",partitaInAvvio->squadra_B->players[i]->nome_player,partitaInAvvio->squadra_B->nome_squadra);
 
         }
 
@@ -116,7 +114,7 @@ void avvisa_players_stato_match(int indexPartita, char *messaggio){
 
         json_object_object_get_ex(parsed_json, "squadra", &nomeSquadra);
 
-        char *squadraString = malloc(strlen(json_object_get_string(nomeSquadra)) + 1);
+        char squadraString[SIZE_NAME_TEAM];
         strcpy(squadraString,json_object_get_string(nomeSquadra));
 
 
@@ -126,7 +124,7 @@ void avvisa_players_stato_match(int indexPartita, char *messaggio){
 
             if(squadreComplete[i] != NULL){
 
-                if(strcmp(squadreComplete[i]->nomeSquadra,squadraString) == 0) break;
+                if(strcmp(squadreComplete[i]->nome_squadra,squadraString) == 0) break;
             }
         }
 
@@ -137,16 +135,16 @@ void avvisa_players_stato_match(int indexPartita, char *messaggio){
             send(clientCapitano,"rispostaMatch\n", strlen("rispostaMatch\n"),0);
             send(clientCapitano, "attesaMatch\n", strlen("attesaMatch\n"),0);
 
-            printf("Avvisato il capitano %s della squadra %s di in attesa di squadra avversaria\n",squadreComplete[i]->capitano->nomePlayer,squadreComplete[i]->nomeSquadra);
+            printf("Avvisato il capitano %s della squadra %s di in attesa di squadra avversaria\n",squadreComplete[i]->capitano->nome_player,squadreComplete[i]->nome_squadra);
 
             //Avverti i player
-            for(int j=0; j<4; j++){
+            for(int j=0; j<SIZE_ARRAY_PLAYER_PARTECIPANTI; j++){
 
                 int clientPlayer = squadreComplete[i]->players[j]->socket;
                 send(clientPlayer,"rispostaMatch\n", strlen("rispostaMatch\n"),0);
                 send(clientPlayer, "attesaMatch\n", strlen("attesaMatch\n"),0);
 
-                printf("Avvisato il player %s della squadra %s di in attesa di squadra avversaria\n",squadreComplete[i]->players[j]->nomePlayer,squadreComplete[i]->nomeSquadra);
+                printf("Avvisato il player %s della squadra %s di in attesa di squadra avversaria\n",squadreComplete[i]->players[j]->nome_player,squadreComplete[i]->nome_squadra);
 
             }
         }
@@ -159,36 +157,81 @@ void *avviaTimer(void *arg){
 
     partita *match = partite[indexPartita];
 
+    json_object *jobj;
+
+    char *messaggioJSON;
+
     for(int i=0; i<5; i++){
 
         sleep(60);
 
-        pthread_mutex_lock(&mutexMsgEvento);
-
         switch(i){
 
             case 0:
-                sendEventoPartecipantiMatch("refreshTime\n",indexPartita);
-                sendEventoPartecipantiMatch("4m\n",indexPartita);
+
+                //Costruisci messaggio e invia messaggio ai partecipanti
+                jobj = json_object_new_object();
+                json_object_object_add(jobj, "tipoEvento", json_object_new_string("refreshTime"));
+                json_object_object_add(jobj, "countDown", json_object_new_string("4m"));
+                const char *json_str = json_object_to_json_string(jobj);
+
+                messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+                json_object_put(jobj); // Dealloca l'oggetto JSON
+                strcat(messaggioJSON,"\n");
+
+                sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+
                 break;
 
             case 1:
-                sendEventoPartecipantiMatch("refreshTime\n",indexPartita);
-                sendEventoPartecipantiMatch("3m\n",indexPartita);
+
+                //Costruisci messaggio e invia messaggio ai partecipanti
+                jobj = json_object_new_object();
+                json_object_object_add(jobj, "tipoEvento", json_object_new_string("refreshTime"));
+                json_object_object_add(jobj, "countDown", json_object_new_string("3m"));
+                const char *json_str1 = json_object_to_json_string(jobj);
+
+                messaggioJSON = strdup(json_str1); // Copia la stringa JSON per restituirla
+                json_object_put(jobj); // Dealloca l'oggetto JSON
+                strcat(messaggioJSON,"\n");
+
+                sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+
                 break;
 
             case 2:
-                sendEventoPartecipantiMatch("refreshTime\n",indexPartita);
-                sendEventoPartecipantiMatch("2m\n",indexPartita);
+
+                //Costruisci messaggio e invia messaggio ai partecipanti
+                jobj = json_object_new_object();
+                json_object_object_add(jobj, "tipoEvento", json_object_new_string("refreshTime"));
+                json_object_object_add(jobj, "countDown", json_object_new_string("2m"));
+                const char *json_str2 = json_object_to_json_string(jobj);
+
+                messaggioJSON = strdup(json_str2); // Copia la stringa JSON per restituirla
+                json_object_put(jobj); // Dealloca l'oggetto JSON
+                strcat(messaggioJSON,"\n");
+
+                sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+
                 break;
 
             case 3:
-                sendEventoPartecipantiMatch("refreshTime\n",indexPartita);
-                sendEventoPartecipantiMatch("1m\n",indexPartita);
+
+                //Costruisci messaggio e invia messaggio ai partecipanti
+                jobj = json_object_new_object();
+                json_object_object_add(jobj, "tipoEvento", json_object_new_string("refreshTime"));
+                json_object_object_add(jobj, "countDown", json_object_new_string("1m"));
+                const char *json_str3 = json_object_to_json_string(jobj);
+
+                messaggioJSON = strdup(json_str3); // Copia la stringa JSON per restituirla
+                json_object_put(jobj); // Dealloca l'oggetto JSON
+                strcat(messaggioJSON,"\n");
+
+                sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+
                 break;
         }
 
-        pthread_mutex_unlock(&mutexMsgEvento);
     }
 
 
@@ -251,7 +294,6 @@ void tira(char *player, int indexPartita, int *scoreA, int *scoreB){
 
 
     printf("%s tenta il tiro\n", player);
-    sleep(1);
 
     partita *match = partite[indexPartita];
     int turnoSquadra = getSquadraFromPlayer(player,indexPartita);
@@ -296,18 +338,17 @@ void tira(char *player, int indexPartita, int *scoreA, int *scoreB){
 
             if(turnoSquadra == 0){
 
-                printf("punto per la squadra %s\n",match->squadra_A->nomeSquadra);
+                printf("punto per la squadra %s\n",match->squadra_A->nome_squadra);
                 (*scoreA)++;
 
             }else{
 
-                printf("punto per la squadra %s\n",match->squadra_B->nomeSquadra);
+                printf("punto per la squadra %s\n",match->squadra_B->nome_squadra);
                 (*scoreB)++;
             }
 
             printf("nuovo risultato: %d-%d\n",*scoreA,*scoreB);
             printf("\n");
-            sleep(1);
 
         }
 }
@@ -315,7 +356,6 @@ void tira(char *player, int indexPartita, int *scoreA, int *scoreB){
 void dribbling(char *player,int indexPartita, int *scoreA, int *scoreB){
 
     printf("%s tenta il dribbling\n", player);
-    sleep(1);
 
     int esito = esitoDribbling();
 
@@ -323,7 +363,6 @@ void dribbling(char *player,int indexPartita, int *scoreA, int *scoreB){
 
         printf("dribbling fallito, il possesso palla passa all'avversario");
         printf("\n");
-        sleep(1);
 
         //Costruisci messaggio
         json_object *jobj = json_object_new_object();
@@ -341,7 +380,6 @@ void dribbling(char *player,int indexPartita, int *scoreA, int *scoreB){
     }else{
 
         printf("dribbling fantastisco,ha spazio per un tiro\n");
-        sleep(1);
 
         //Costruisci messaggio
         json_object *jobj = json_object_new_object();
@@ -355,9 +393,7 @@ void dribbling(char *player,int indexPartita, int *scoreA, int *scoreB){
         strcat(messaggioJSON,"\n");
 
         sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
-        sleep(1);
 
-        sendEventoPartecipantiMatch("evento\n",indexPartita);
         tira(player,indexPartita, scoreA, scoreB);
     }
 }
@@ -368,88 +404,114 @@ void *penalizzazione(void *infoThread){
     argomentiThreadPenalizzazione *arg = (argomentiThreadPenalizzazione*) infoThread;
     int indexPartita = arg->indexPartita;
     int time = arg->timeP;
-    char *playerString = arg->player;
+    char *playerString = malloc(SIZE_NAME_PLAYER * sizeof(char));
+    strcpy(playerString,arg->player);
     partita *match = partite[indexPartita];
     player *playerP = NULL;
+
+    printf("Test thread penalizzazione player penalizzato: %s\n",playerString);
 
     sleep(time * 60);
 
     //Cerca player
-    if(strcmp(playerString,match->squadra_A->capitano->nomePlayer) == 0){
+    if(strcmp(playerString,match->squadra_A->capitano->nome_player) == 0){
 
         playerP = match->squadra_A->capitano;
-        char playerRitornato[50];
-        strcpy(playerRitornato,playerP->nomePlayer);
-        strcat(playerRitornato,"\n");
 
         //Rendi player disponibile
+        pthread_mutex_lock(&mutexPartite);
         playerP->penalizzato = 0;
-        printf("Il player %s ha scontato la penalizzazione\n",playerP->nomePlayer);
+        printf("Il player %s ha scontato la penalizzazione\n",playerP->nome_player);
+        pthread_mutex_unlock(&mutexPartite);
 
-        //Invia messaggio ritorno player dalla penalizzazione
-        pthread_mutex_lock(&mutexMsgEvento);
-        sendEventoPartecipantiMatch("ritornoPenalizzazione\n",indexPartita);
-        sendEventoPartecipantiMatch(playerRitornato,indexPartita);
-        pthread_mutex_unlock(&mutexMsgEvento);
+        //Costruisci messaggio e invia messaggio ai partecipanti
+        json_object *jobj = json_object_new_object();
+        json_object_object_add(jobj, "tipoEvento", json_object_new_string("ritornoPenalizzazione"));
+        json_object_object_add(jobj, "playerRitornato", json_object_new_string(playerString));
+        const char *json_str = json_object_to_json_string(jobj);
+
+        char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+        json_object_put(jobj); // Dealloca l'oggetto JSON
+        strcat(messaggioJSON,"\n");
+
+        sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+
         return;
     }
 
-    if(strcmp(playerString,match->squadra_B->capitano->nomePlayer) == 0){
+    if(strcmp(playerString,match->squadra_B->capitano->nome_player) == 0){
 
         playerP = match->squadra_B->capitano;
-        char playerRitornato[50];
-        strcpy(playerRitornato,playerP->nomePlayer);
-        strcat(playerRitornato,"\n");
 
         //Rendi player disponibile
         playerP->penalizzato = 0;
-        printf("Il player %s ha scontato la penalizzazione\n",playerP->nomePlayer);
+        printf("Il player %s ha scontato la penalizzazione\n",playerP->nome_player);
 
         //Invia messaggio ritorno player dalla penalizzazione
-        pthread_mutex_lock(&mutexMsgEvento);
-        sendEventoPartecipantiMatch("ritornoPenalizzazione\n",indexPartita);
-        sendEventoPartecipantiMatch(playerRitornato,indexPartita);
-        pthread_mutex_unlock(&mutexMsgEvento);
+        //Costruisci messaggio e invia messaggio ai partecipanti
+        json_object *jobj = json_object_new_object();
+        json_object_object_add(jobj, "tipoEvento", json_object_new_string("ritornoPenalizzazione"));
+        json_object_object_add(jobj, "playerRitornato", json_object_new_string(playerString));
+        const char *json_str = json_object_to_json_string(jobj);
+
+        char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+        json_object_put(jobj); // Dealloca l'oggetto JSON
+        strcat(messaggioJSON,"\n");
+
+        sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+
+
         return;
     }
 
-    for(int i=0; i<4; i++){
+    for(int i=0; i<SIZE_ARRAY_PLAYER_PARTECIPANTI; i++){
 
-        if(strcmp(playerString,match->squadra_A->players[i]->nomePlayer) == 0){
+        if(strcmp(playerString,match->squadra_A->players[i]->nome_player) == 0){
 
             playerP = match->squadra_A->players[i];
-            char playerRitornato[50];
-            strcpy(playerRitornato,playerP->nomePlayer);
-            strcat(playerRitornato,"\n");
 
             //Rendi player disponibile
             playerP->penalizzato = 0;
-            printf("Il player %s ha scontato la penalizzazione\n",playerP->nomePlayer);
+            printf("Il player %s ha scontato la penalizzazione\n",playerP->nome_player);
 
             //Invia messaggio ritorno player dalla penalizzazione
-            pthread_mutex_lock(&mutexMsgEvento);
-            sendEventoPartecipantiMatch("ritornoPenalizzazione\n",indexPartita);
-            sendEventoPartecipantiMatch(playerRitornato,indexPartita);
-            pthread_mutex_unlock(&mutexMsgEvento);
+
+            //Costruisci messaggio e invia messaggio ai partecipanti
+            json_object *jobj = json_object_new_object();
+            json_object_object_add(jobj, "tipoEvento", json_object_new_string("ritornoPenalizzazione"));
+            json_object_object_add(jobj, "playerRitornato", json_object_new_string(playerString));
+            const char *json_str = json_object_to_json_string(jobj);
+
+            char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+            json_object_put(jobj); // Dealloca l'oggetto JSON
+            strcat(messaggioJSON,"\n");
+
+            sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+
             return;
         }
 
-         if(strcmp(playerString,match->squadra_B->players[i]->nomePlayer) == 0){
+         if(strcmp(playerString,match->squadra_B->players[i]->nome_player) == 0){
 
             playerP = match->squadra_B->players[i];
-            char playerRitornato[50];
-            strcpy(playerRitornato,playerP->nomePlayer);
-            strcat(playerRitornato,"\n");
 
             //Rendi player disponibile
             playerP->penalizzato = 0;
-            printf("Il player %s ha scontato la penalizzazione\n",playerP->nomePlayer);
+            printf("Il player %s ha scontato la penalizzazione\n",playerP->nome_player);
 
             //Invia messaggio ritorno player dalla penalizzazione
-            pthread_mutex_lock(&mutexMsgEvento);
-            sendEventoPartecipantiMatch("ritornoPenalizzazione\n",indexPartita);
-            sendEventoPartecipantiMatch(playerRitornato,indexPartita);
-            pthread_mutex_unlock(&mutexMsgEvento);
+            //Costruisci messaggio e invia messaggio ai partecipanti
+            json_object *jobj = json_object_new_object();
+            json_object_object_add(jobj, "tipoEvento", json_object_new_string("ritornoPenalizzazione"));
+            json_object_object_add(jobj, "playerRitornato", json_object_new_string(playerString));
+            const char *json_str = json_object_to_json_string(jobj);
+
+            char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+            json_object_put(jobj); // Dealloca l'oggetto JSON
+            strcat(messaggioJSON,"\n");
+
+            sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+
             return;
         }
     }
@@ -458,18 +520,20 @@ void *penalizzazione(void *infoThread){
 
 void *infortunio(void *infoThread){
 
-
     //Esrazione parametri thread
     argomentiThreadInfortunio *arg = (argomentiThreadInfortunio*) infoThread;
     int indexPartita = arg->indexPartita;
-    char *playerString = arg->player;
+    char *playerString = malloc(SIZE_NAME_PLAYER * sizeof(char));
+    strcpy(playerString,arg->player_name);
 
     partita *match = partite[indexPartita];
     player *playerInfortunato = NULL;
 
+    printf("Test Thread infotunio: player infortunato %s\n",playerString);
+
     //Cerca player infortunato
-    char *capitanoA = match->squadra_A->capitano->nomePlayer;
-    char *capitanoB = match->squadra_B->capitano->nomePlayer;
+    char *capitanoA = match->squadra_A->capitano->nome_player;
+    char *capitanoB = match->squadra_B->capitano->nome_player;
 
     if(strcmp(capitanoA,playerString) == 0)
         playerInfortunato = match->squadra_A->capitano;
@@ -482,10 +546,10 @@ void *infortunio(void *infoThread){
 
     if(playerInfortunato == NULL){
 
-        for(int i=0; i<4; i++){
+        for(int i=0; i<SIZE_ARRAY_PLAYER_PARTECIPANTI; i++){
 
-            char *playerA = match->squadra_A->players[i]->nomePlayer;
-            char *playerB = match->squadra_B->players[i]->nomePlayer;
+            char *playerA = match->squadra_A->players[i]->nome_player;
+            char *playerB = match->squadra_B->players[i]->nome_player;
 
             if(strcmp(playerA,playerString) == 0){
 
@@ -510,96 +574,132 @@ void *infortunio(void *infoThread){
 
     //Penalizzazione giocatore avversario coinvolto
     int squadra = getSquadraFromPlayer(playerString,indexPartita); //Ottiene la squadra del giocatore infortunato per penalizzare la squadra avversaria
-    int random_player = rand() % 5;
+    int random_player;
     int random_time_p = (rand() % 4) + 1;
     player *playerPenalizzato;
-    if(squadra == 0){ //Penalliza squadra B
+    int trovato_player_da_penalizzare = 0;
 
-        if(random_player == 4){ //Penalliza il capitano della squadra 1
+    while(trovato_player_da_penalizzare != 1){
 
-            playerPenalizzato = match->squadra_B->capitano;
-            playerPenalizzato->penalizzato = 1;
-            printf("Fallo commesso da %s penalizzato per %d min\n",playerPenalizzato->nomePlayer,random_time_p);
-            //Crea thread penalizzazione
-            pthread_t thread;
-            argomentiThreadPenalizzazione *infoThread = malloc(sizeof(argomentiThreadPenalizzazione));
-            infoThread->player = playerPenalizzato->nomePlayer;
-            infoThread->indexPartita = indexPartita;
-            infoThread->timeP = random_time_p;
-            // Crea il thread e passa il puntatore alla struct come argomento
-            if (pthread_create(&thread, NULL, penalizzazione, (void*)infoThread) != 0) {
+        random_player = rand() % 5;
+        if(squadra == 0){ //Penalliza squadra B
 
-                printf(stderr, "Errore nella creazione del thread infortunio\n");
+            if(random_player == 4){ //Penalliza il capitano della squadra 1
+
+                playerPenalizzato = match->squadra_B->capitano;
+                pthread_mutex_lock(&mutexPartite);
+                if(playerPenalizzato->infortunato != 1 && playerPenalizzato->penalizzato != 1){
+
+                    playerPenalizzato->penalizzato = 1;
+                    printf("Fallo commesso da %s penalizzato per %d min\n",playerPenalizzato->nome_player,random_time_p);
+                    pthread_mutex_unlock(&mutexPartite);
+                    //Crea thread penalizzazione
+                    pthread_t thread;
+                    argomentiThreadPenalizzazione *infoThreadPenalizzazione = malloc(sizeof(argomentiThreadPenalizzazione));
+                    strcpy(infoThreadPenalizzazione->player,playerPenalizzato->nome_player);
+                    infoThreadPenalizzazione->indexPartita = indexPartita;
+                    infoThreadPenalizzazione->timeP = random_time_p;
+                    // Crea il thread e passa il puntatore alla struct come argomento
+                    if (pthread_create(&thread, NULL, penalizzazione, (void*)infoThreadPenalizzazione) != 0) {
+
+                        printf(stderr, "Errore nella creazione del thread infortunio\n");
+                    }
+
+                    trovato_player_da_penalizzare = 1;
+                }
+
+            }else{ //penalizza un player della squadra B
+
+                playerPenalizzato = match->squadra_B->players[random_player];
+                pthread_mutex_lock(&mutexPartite);
+                if(playerPenalizzato->infortunato != 1 && playerPenalizzato->penalizzato != 1){
+                    playerPenalizzato->penalizzato = 1;
+                    printf("Fallo commesso da %s penalizzato per %d min\n",playerPenalizzato->nome_player,random_time_p);
+                    pthread_mutex_unlock(&mutexPartite);
+
+                    //Crea thread penalizzazione
+                    pthread_t thread;
+                    argomentiThreadPenalizzazione *infoThreadPenalizzazione = malloc(sizeof(argomentiThreadPenalizzazione));
+                    strcpy(infoThreadPenalizzazione->player,playerPenalizzato->nome_player);
+                    infoThreadPenalizzazione->indexPartita = indexPartita;
+                    infoThreadPenalizzazione->timeP = random_time_p;
+                    // Crea il thread e passa il puntatore alla struct come argomento
+                    if (pthread_create(&thread, NULL, penalizzazione, (void*)infoThreadPenalizzazione) != 0) {
+
+                        printf(stderr, "Errore nella creazione del thread infortunio\n");
+                    }
+
+                    trovato_player_da_penalizzare = 1;
+                }
             }
 
-        }else{ //penalizza un player della squadra B
+        }else{ //Penaliza squadra A
 
-            playerPenalizzato = match->squadra_B->players[random_player];
-            playerPenalizzato->penalizzato = 1;
-            printf("Fallo commesso da %s penalizzato per %d min\n",playerPenalizzato->nomePlayer,random_time_p);
+            if(random_player == 4){ //Penalliza il capitano della squadra 1
 
-            //Crea thread penalizzazione
-            pthread_t thread;
-            argomentiThreadPenalizzazione *infoThread = malloc(sizeof(argomentiThreadPenalizzazione));
-            infoThread->player = playerPenalizzato->nomePlayer;
-            infoThread->indexPartita = indexPartita;
-            infoThread->timeP = random_time_p;
-            // Crea il thread e passa il puntatore alla struct come argomento
-            if (pthread_create(&thread, NULL, penalizzazione, (void*)infoThread) != 0) {
+                playerPenalizzato = match->squadra_A->capitano;
+                pthread_mutex_lock(&mutexPartite);
+                if(playerPenalizzato->infortunato != 1 && playerPenalizzato->penalizzato != 1){
+                    playerPenalizzato->penalizzato = 1;
+                    printf("Fallo commesso da %s penalizzato per %d min\n",playerPenalizzato->nome_player,random_time_p);
+                    pthread_mutex_unlock(&mutexPartite);
 
-                printf(stderr, "Errore nella creazione del thread infortunio\n");
+                    //Crea thread penalizzazione
+                    pthread_t thread;
+                    argomentiThreadPenalizzazione *infoThreadPenalizzazione = malloc(sizeof(argomentiThreadPenalizzazione));
+                    strcpy(infoThreadPenalizzazione->player,playerPenalizzato->nome_player);
+                    infoThreadPenalizzazione->indexPartita = indexPartita;
+                    infoThreadPenalizzazione->timeP = random_time_p;
+                    // Crea il thread e passa il puntatore alla struct come argomento
+                    if (pthread_create(&thread, NULL, penalizzazione, (void*)infoThreadPenalizzazione) != 0) {
+
+                        printf(stderr, "Errore nella creazione del thread infortunio\n");
+                    }
+
+                    trovato_player_da_penalizzare = 1;
+                }
+
+            }else{ //penalizza un player della squadra A
+
+                playerPenalizzato = match->squadra_A->players[random_player];
+                pthread_mutex_lock(&mutexPartite);
+                if(playerPenalizzato->infortunato != 1 && playerPenalizzato->penalizzato != 1){
+                    playerPenalizzato->penalizzato = 1;
+                    pthread_mutex_unlock(&mutexPartite);
+                    printf("Fallo commesso da %s penalizzato per %d min\n",playerPenalizzato->nome_player,random_time_p);
+
+                    //Crea thread penalizzazione
+                    pthread_t thread;
+                    argomentiThreadPenalizzazione *infoThreadPenalizzazione = malloc(sizeof(argomentiThreadPenalizzazione));
+                    strcpy(infoThreadPenalizzazione->player,playerPenalizzato->nome_player);
+                    infoThreadPenalizzazione->indexPartita = indexPartita;
+                    infoThreadPenalizzazione->timeP = random_time_p;
+                    // Crea il thread e passa il puntatore alla struct come argomento
+                    if (pthread_create(&thread, NULL, penalizzazione, (void*)infoThreadPenalizzazione) != 0) {
+
+                        printf(stderr, "Errore nella creazione del thread infortunio\n");
+                    }
+
+                    trovato_player_da_penalizzare = 1;
+                }
             }
         }
 
-    }else{ //Penaliza squadra A
-
-        if(random_player == 4){ //Penalliza il capitano della squadra 1
-
-            playerPenalizzato = match->squadra_A->capitano;
-            playerPenalizzato->penalizzato = 1;
-            printf("Fallo commesso da %s penalizzato per %d min\n",playerPenalizzato->nomePlayer,random_time_p);
-
-            //Crea thread penalizzazione
-            pthread_t thread;
-            argomentiThreadPenalizzazione *infoThread = malloc(sizeof(argomentiThreadPenalizzazione));
-            infoThread->player = playerPenalizzato->nomePlayer;
-            infoThread->indexPartita = indexPartita;
-            infoThread->timeP = random_time_p;
-            // Crea il thread e passa il puntatore alla struct come argomento
-            if (pthread_create(&thread, NULL, penalizzazione, (void*)infoThread) != 0) {
-
-                printf(stderr, "Errore nella creazione del thread infortunio\n");
-            }
-
-        }else{ //penalizza un player della squadra B
-
-            playerPenalizzato = match->squadra_A->players[random_player];
-            playerPenalizzato->penalizzato = 1;
-            printf("Fallo commesso da %s penalizzato per %d min\n",playerPenalizzato->nomePlayer,random_time_p);
-
-            //Crea thread penalizzazione
-            pthread_t thread;
-            argomentiThreadPenalizzazione *infoThread = malloc(sizeof(argomentiThreadPenalizzazione));
-            infoThread->player = playerPenalizzato->nomePlayer;
-            infoThread->indexPartita = indexPartita;
-            infoThread->timeP = random_time_p;
-            // Crea il thread e passa il puntatore alla struct come argomento
-            if (pthread_create(&thread, NULL, penalizzazione, (void*)infoThread) != 0) {
-
-                printf(stderr, "Errore nella creazione del thread infortunio\n");
-            }
-        }
+        if(trovato_player_da_penalizzare == 0)
+            pthread_mutex_unlock(&mutexPartite);
     }
 
     //Rendi indisponibile il player
+    pthread_mutex_lock(&mutexPartite);
     playerInfortunato->infortunato = 1;
+    pthread_mutex_unlock(&mutexPartite);
 
     //Costruisci messaggio
     json_object *jobj = json_object_new_object();
     json_object_object_add(jobj, "tipoEvento", json_object_new_string("infortunio"));
     json_object_object_add(jobj, "turnoPlayer", json_object_new_string(playerString));
     json_object_object_add(jobj, "minuti", json_object_new_int(random_number));
-    json_object_object_add(jobj, "playerPenalizzato", json_object_new_string(playerPenalizzato->nomePlayer));
+    json_object_object_add(jobj, "playerPenalizzato", json_object_new_string(playerPenalizzato->nome_player));
     json_object_object_add(jobj, "minutiP", json_object_new_int(random_time_p));
 
 
@@ -609,12 +709,13 @@ void *infortunio(void *infoThread){
     strcat(messaggioJSON,"\n");
 
     sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
-    pthread_mutex_unlock(&mutexMsgEvento);
 
     sleep(secondiInfortunio);
 
     //Ritorno del player
+    pthread_mutex_lock(&mutexPartite);
     playerInfortunato->infortunato = 0;
+    pthread_mutex_unlock(&mutexPartite);
 
     printf("%s è ritornato dall'infortunio\n",playerString);
 
@@ -628,25 +729,22 @@ void *infortunio(void *infoThread){
     json_object_put(jobj2); // Dealloca l'oggetto JSON
     strcat(messaggioJSON2,"\n");
 
-    pthread_mutex_lock(&mutexMsgEvento);
-    sendEventoPartecipantiMatch("evento\n",indexPartita);
     sendEventoPartecipantiMatch(messaggioJSON2,indexPartita);
-    pthread_mutex_unlock(&mutexMsgEvento);
 }
 
 int getSquadraFromPlayer(char *player, int indexPartita){
 
     partita *match = partite[indexPartita];
 
-    if(strcmp(player,match->squadra_A->capitano->nomePlayer) == 0) return 0;
+    if(strcmp(player,match->squadra_A->capitano->nome_player) == 0) return 0;
 
-    if(strcmp(player,match->squadra_B->capitano->nomePlayer) == 0) return 1;
+    if(strcmp(player,match->squadra_B->capitano->nome_player) == 0) return 1;
 
-    for(int i=0; i<4; i++){
+    for(int i=0; i<SIZE_ARRAY_PLAYER_PARTECIPANTI; i++){
 
-        if(strcmp(player,match->squadra_A->players[i]->nomePlayer) == 0) return 0;
+        if(strcmp(player,match->squadra_A->players[i]->nome_player) == 0) return 0;
 
-        if(strcmp(player,match->squadra_B->players[i]->nomePlayer) == 0) return 1;
+        if(strcmp(player,match->squadra_B->players[i]->nome_player) == 0) return 1;
     }
 
     return -1;
@@ -656,15 +754,15 @@ int getIndexPlayer(char *player, int indexPartita){
 
     partita *match = partite[indexPartita];
 
-    if(strcmp(player,match->squadra_A->capitano->nomePlayer) == 0) return 4;
+    if(strcmp(player,match->squadra_A->capitano->nome_player) == 0) return 4;
 
-    if(strcmp(player,match->squadra_B->capitano->nomePlayer) == 0) return 4;
+    if(strcmp(player,match->squadra_B->capitano->nome_player) == 0) return 4;
 
-    for(int i=0; i<4; i++){
+    for(int i=0; i<SIZE_ARRAY_PLAYER_PARTECIPANTI; i++){
 
-        if(strcmp(player,match->squadra_A->players[i]->nomePlayer) == 0) return i;
+        if(strcmp(player,match->squadra_A->players[i]->nome_player) == 0) return i;
 
-        if(strcmp(player,match->squadra_B->players[i]->nomePlayer) == 0) return i;
+        if(strcmp(player,match->squadra_B->players[i]->nome_player) == 0) return i;
     }
 
     return -1;
@@ -701,29 +799,30 @@ char *assegna_turno(int turnoSquadraAttuale, int indexPartita, int *indiceTurnoA
         (*indiceTurnoB)++;
         int indiceTurnoModulato = (*indiceTurnoB)%5;
         char *turnoPlayer;
-        char *turnoPlayerReturn;
         player *playerInfo;
 
         while(1){
 
             //Assegna turno al capitano se non è infortunato
             if(indiceTurnoModulato == 4){
-
                 playerInfo = match->squadra_B->capitano;
-
                 if(playerInfo->infortunato != 1 && playerInfo->penalizzato != 1){
 
-                    turnoPlayer = malloc(strlen(playerInfo->nomePlayer)+1);
-                    turnoPlayerReturn = malloc(strlen(playerInfo->nomePlayer)+1);
-                    strcpy(turnoPlayer,playerInfo->nomePlayer);
-                    strcpy(turnoPlayerReturn,playerInfo->nomePlayer);
+                    turnoPlayer = malloc(SIZE_NAME_PLAYER * sizeof(char));
+                    strcpy(turnoPlayer,playerInfo->nome_player);
 
-                    strcat(turnoPlayer,"\n");
+                    //Costruisci messaggio e invia messaggio ai partecipanti
+                    json_object *jobj = json_object_new_object();
+                    json_object_object_add(jobj, "tipoEvento", json_object_new_string("assegnazioneTurno"));
+                    json_object_object_add(jobj, "turnoPlayer", json_object_new_string(turnoPlayer));
+                    const char *json_str = json_object_to_json_string(jobj);
+                    char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+                    json_object_put(jobj); // Dealloca l'oggetto JSON
+                    strcat(messaggioJSON,"\n");
 
-                    sendEventoPartecipantiMatch("assegnazioneTurno\n",indexPartita);
-                    sendEventoPartecipantiMatch(turnoPlayer,indexPartita);
+                    sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
 
-                    return turnoPlayerReturn;
+                    return turnoPlayer;
                 }
 
             }else{
@@ -732,22 +831,26 @@ char *assegna_turno(int turnoSquadraAttuale, int indexPartita, int *indiceTurnoA
 
                 if(playerInfo->infortunato != 1 && playerInfo->penalizzato != 1){
 
-                    turnoPlayer = malloc(strlen(playerInfo->nomePlayer)+1);
-                    turnoPlayerReturn = malloc(strlen(playerInfo->nomePlayer)+1);
-                    strcpy(turnoPlayer,playerInfo->nomePlayer);
-                    strcpy(turnoPlayerReturn,playerInfo->nomePlayer);
+                    turnoPlayer = malloc(SIZE_NAME_PLAYER * sizeof(char));
+                    strcpy(turnoPlayer,playerInfo->nome_player);
 
-                    strcat(turnoPlayer,"\n");
+                    //Costruisci messaggio e invia messaggio ai partecipanti
+                    json_object *jobj = json_object_new_object();
+                    json_object_object_add(jobj, "tipoEvento", json_object_new_string("assegnazioneTurno"));
+                    json_object_object_add(jobj, "turnoPlayer", json_object_new_string(turnoPlayer));
+                    const char *json_str = json_object_to_json_string(jobj);
+                    char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+                    json_object_put(jobj); // Dealloca l'oggetto JSON
+                    strcat(messaggioJSON,"\n");
 
-                    sendEventoPartecipantiMatch("assegnazioneTurno\n",indexPartita);
-                    sendEventoPartecipantiMatch(turnoPlayer,indexPartita);
+                    sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
 
-                    return turnoPlayerReturn;
+                    return turnoPlayer;
                 }
             }
 
             //Se arriva qui non è stato assegnato il turno quindi fa una nuova iterazione con il turno successivo
-            *indiceTurnoB++;
+            (*indiceTurnoB)++;
             indiceTurnoModulato = (*indiceTurnoB)%5;
         }
     }
@@ -755,11 +858,9 @@ char *assegna_turno(int turnoSquadraAttuale, int indexPartita, int *indiceTurnoA
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
    //--------------------------------ASSENAZIONE TURNO PLYER SQUADRA A---------------------------------------------------
-
-   *indiceTurnoA++;
+   (*indiceTurnoA)++;
     int indiceTurnoModulato = (*indiceTurnoA)%5;
     char *turnoPlayer;
-    char *turnoPlayerReturn;
     player *playerInfo;
 
     while(1){
@@ -771,17 +872,21 @@ char *assegna_turno(int turnoSquadraAttuale, int indexPartita, int *indiceTurnoA
 
             if(playerInfo->infortunato != 1 && playerInfo->penalizzato != 1){
 
-                turnoPlayer = malloc(strlen(playerInfo->nomePlayer)+1);
-                turnoPlayerReturn = malloc(strlen(playerInfo->nomePlayer)+1);
-                strcpy(turnoPlayer,playerInfo->nomePlayer);
-                strcpy(turnoPlayerReturn,playerInfo->nomePlayer);
+                turnoPlayer = malloc(SIZE_NAME_PLAYER * sizeof(char));
+                strcpy(turnoPlayer,playerInfo->nome_player);
 
-                strcat(turnoPlayer,"\n");
+                //Costruisci messaggio e invia messaggio ai partecipanti
+                json_object *jobj = json_object_new_object();
+                json_object_object_add(jobj, "tipoEvento", json_object_new_string("assegnazioneTurno"));
+                json_object_object_add(jobj, "turnoPlayer", json_object_new_string(turnoPlayer));
+                const char *json_str = json_object_to_json_string(jobj);
+                char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+                json_object_put(jobj); // Dealloca l'oggetto JSON
+                strcat(messaggioJSON,"\n");
 
-                sendEventoPartecipantiMatch("assegnazioneTurno\n",indexPartita);
-                sendEventoPartecipantiMatch(turnoPlayer,indexPartita);
+                sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
 
-                return turnoPlayerReturn;
+                return turnoPlayer;
             }
 
         }else{
@@ -790,23 +895,28 @@ char *assegna_turno(int turnoSquadraAttuale, int indexPartita, int *indiceTurnoA
 
             if(playerInfo->infortunato != 1 && playerInfo->penalizzato != 1){
 
-                turnoPlayer = malloc(strlen(playerInfo->nomePlayer)+1);
-                turnoPlayerReturn = malloc(strlen(playerInfo->nomePlayer)+1);
-                strcpy(turnoPlayer,playerInfo->nomePlayer);
-                strcpy(turnoPlayerReturn,playerInfo->nomePlayer);
+                turnoPlayer = malloc(SIZE_NAME_PLAYER * sizeof(char));
+                strcpy(turnoPlayer,playerInfo->nome_player);
 
-                strcat(turnoPlayer,"\n");
+                //Costruisci messaggio e invia messaggio ai partecipanti
+                json_object *jobj = json_object_new_object();
+                json_object_object_add(jobj, "tipoEvento", json_object_new_string("assegnazioneTurno"));
+                json_object_object_add(jobj, "turnoPlayer", json_object_new_string(turnoPlayer));
+                const char *json_str = json_object_to_json_string(jobj);
 
-                sendEventoPartecipantiMatch("assegnazioneTurno\n",indexPartita);
-                sendEventoPartecipantiMatch(turnoPlayer,indexPartita);
+                char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+                json_object_put(jobj); // Dealloca l'oggetto JSON
+                strcat(messaggioJSON,"\n");
 
-                return turnoPlayerReturn;
+                sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+
+                return turnoPlayer;
             }
         }
 
         //Se arriva qui non è stato assegnato il turno quindi fa una nuova iterazione con il turno successivo
-        *indiceTurnoB++;
-        indiceTurnoModulato = (*indiceTurnoB)%5;
+        (*indiceTurnoA)++;
+        indiceTurnoModulato = (*indiceTurnoA)%5;
     }
 }
 
@@ -819,7 +929,7 @@ void simulaMatch(int indexPartita){
     char *playerInizioTurnoString = match->inizioTurno;
     player *playerInizioTurno;
 
-    if(strcmp(playerInizioTurnoString,match->squadra_A->capitano->nomePlayer) == 0){
+    if(strcmp(playerInizioTurnoString,match->squadra_A->capitano->nome_player) == 0){
 
         playerInizioTurno = match->squadra_A->capitano;
         playerTrovato = 1;
@@ -827,7 +937,7 @@ void simulaMatch(int indexPartita){
 
     if(playerTrovato != 1){
 
-        if(strcmp(playerInizioTurnoString,match->squadra_B->capitano->nomePlayer) == 0){
+        if(strcmp(playerInizioTurnoString,match->squadra_B->capitano->nome_player) == 0){
 
             playerInizioTurno = match->squadra_B->capitano;
             playerTrovato = 1;
@@ -837,15 +947,15 @@ void simulaMatch(int indexPartita){
 
     if(playerTrovato != 1){
 
-        for(int i=0; i<4; i++){
+        for(int i=0; i<SIZE_ARRAY_PLAYER_PARTECIPANTI; i++){
 
-            if(strcmp(playerInizioTurno,match->squadra_A->players[i]->nomePlayer) == 0){
+            if(strcmp(playerInizioTurno,match->squadra_A->players[i]->nome_player) == 0){
 
                 playerInizioTurno = match->squadra_A->players[i];
                 break;
             }
 
-            if(strcmp(playerInizioTurno,match->squadra_B->players[i]->nomePlayer) == 0){
+            if(strcmp(playerInizioTurno,match->squadra_B->players[i]->nome_player) == 0){
 
                 playerInizioTurno = match->squadra_B->players[i];
                 break;
@@ -891,24 +1001,20 @@ void simulaMatch(int indexPartita){
 
     evento = getEvento();
 
-    pthread_mutex_lock(&mutexMsgEvento);
-    sendEventoPartecipantiMatch("evento\n",indexPartita);
 
     if(evento == 0){
 
         tira(playerInizioTurnoString,indexPartita,&scoreA,&scoreB);
-        pthread_mutex_unlock(&mutexMsgEvento);
 
     }else if(evento == 1){
 
         dribbling(playerInizioTurnoString,indexPartita,&scoreA,&scoreB);
-        pthread_mutex_unlock(&mutexMsgEvento);
 
     }else{
 
         pthread_t thread;
         argomentiThreadInfortunio *infoThread = malloc(sizeof(argomentiThreadInfortunio));
-        infoThread->player = playerInizioTurnoString;
+        strcpy(infoThread->player_name,playerInizioTurno);
         infoThread->indexPartita = indexPartita;
 
 
@@ -920,12 +1026,13 @@ void simulaMatch(int indexPartita){
 
     }
 
-    sleep(10);
 
     while(match->finePartita != 1){
 
+        pthread_mutex_lock(&mutexPartite);
         char *turnoPlayer;
         turnoPlayer = assegna_turno(turnoSquadra,indexPartita,&indiceTurnoA,&indiceTurnoB);
+        pthread_mutex_unlock(&mutexPartite);
 
         if(turnoSquadra == 0) turnoSquadra = 1;
         else turnoSquadra = 0;
@@ -934,24 +1041,19 @@ void simulaMatch(int indexPartita){
 
         evento = getEvento();
 
-        pthread_mutex_lock(&mutexMsgEvento);
-        sendEventoPartecipantiMatch("evento\n",indexPartita);
-
         if(evento == 0){
 
             tira(turnoPlayer,indexPartita,&scoreA,&scoreB);
-            pthread_mutex_unlock(&mutexMsgEvento);
 
         }else if(evento == 1){
 
             dribbling(turnoPlayer,indexPartita,&scoreA,&scoreB);
-            pthread_mutex_unlock(&mutexMsgEvento);
 
         }else{
 
             pthread_t thread;
             argomentiThreadInfortunio *infoThread = malloc(sizeof(argomentiThreadInfortunio));
-            infoThread->player = turnoPlayer;
+            strcpy(infoThread->player_name,turnoPlayer);
             infoThread->indexPartita = indexPartita;
 
 
@@ -962,13 +1064,23 @@ void simulaMatch(int indexPartita){
             }
         }
 
+        free(turnoPlayer);
         sleep(10);
     }
 
     printf("\n tempo scaduto, match concluso\n");
 
     //Avvertiti i players della fine del match
-    sendEventoPartecipantiMatch("fineMatch\n",indexPartita);
+    //Costruisci messaggio e invia messaggio ai partecipanti
+    json_object *jobj = json_object_new_object();
+    json_object_object_add(jobj, "tipoEvento", json_object_new_string("fineMatch"));
+    const char *json_str = json_object_to_json_string(jobj);
+
+    char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+    json_object_put(jobj); // Dealloca l'oggetto JSON
+    strcat(messaggioJSON,"\n");
+
+    sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
 }
 
 void assegna_turno_iniziale_e_avvia_match(char *messaggio){
@@ -985,45 +1097,32 @@ void assegna_turno_iniziale_e_avvia_match(char *messaggio){
     json_object_object_get_ex(parsed_json, "player", &playerInizioTurnoJSON);
     json_object_object_get_ex(parsed_json, "squadra", &squadraInizioTurnoJSON);
 
-    int indexPartita = json_object_get_int(indexPartita);
-    char playerInizioTurno[30];
+    int indexPartita = json_object_get_int(indexPartitaJSON);
+    char playerInizioTurno[SIZE_NAME_PLAYER];
     strcpy(playerInizioTurno,json_object_get_string(playerInizioTurnoJSON));
-    char squadraInizioTurno[30];
+    char squadraInizioTurno[SIZE_NAME_TEAM];
     strcpy(squadraInizioTurno,json_object_get_string(squadraInizioTurnoJSON));
-    strcat(squadraInizioTurno,"\n");
 
     //Assegna inizio turno al player e avvia la simulazione
     if(strcmp(partite[indexPartita]->inizioTurno,"null") == 0){
 
         strcpy(partite[indexPartita]->inizioTurno,playerInizioTurno);
-        strcat(playerInizioTurno,"\n");
 
         partita *nuovaPartita = partite[indexPartita];
 
-        for(int i=0; i<4; i++){
+        //Costruisci messaggio e invia messaggio ai partecipanti
+        json_object *jobj = json_object_new_object();
+        json_object_object_add(jobj, "tipoEvento", json_object_new_string("inizioMatch"));
+        json_object_object_add(jobj, "playerInizioTurno", json_object_new_string(playerInizioTurno));
+        const char *json_str = json_object_to_json_string(jobj);
 
-            player *playerA = nuovaPartita->squadra_A->players[i];
-            player *playerB = nuovaPartita->squadra_B->players[i];
+        char *messaggioJSON = strdup(json_str); // Copia la stringa JSON per restituirla
+        json_object_put(jobj); // Dealloca l'oggetto JSON
+        strcat(messaggioJSON,"\n");
 
-            send(playerA->socket,"inizioMatch\n",strlen("inizioMatch\n"),0);
-            send(playerA->socket,playerInizioTurno,strlen(playerInizioTurno),0);
-            printf("Avvertito il player %s della squadra %s che il player %s della squadra %s inizia il match\n",playerA->nomePlayer,nuovaPartita->squadra_A->nomeSquadra,playerInizioTurno,squadraInizioTurno);
-
-            send(playerB->socket,"inizioMatch\n",strlen("inizioMatch\n"),0);
-            send(playerB->socket,playerInizioTurno,strlen(playerInizioTurno),0);
-            printf("Avvertito il player %s della squadra %s che il player %s della squadra %s inizia il match\n",playerB->nomePlayer,nuovaPartita->squadra_B->nomeSquadra,playerInizioTurno,squadraInizioTurno);
-        }
-
-        player *capitanoA = nuovaPartita->squadra_A->capitano;
-        player *capitanoB = nuovaPartita->squadra_B->capitano;
-
-        send(capitanoA->socket,"inizioMatch\n",strlen("inizioMatch\n"),0);
-        send(capitanoA->socket,playerInizioTurno,strlen(playerInizioTurno),0);
-        printf("Avvertito il player %s della squadra %s che il player %s della squadra %s inizia il match\n",capitanoA->nomePlayer, nuovaPartita->squadra_A->nomeSquadra,playerInizioTurno,squadraInizioTurno);
-
-        send(capitanoB->socket,"inizioMatch\n",strlen("inizioMatch\n"),0);
-        send(capitanoB->socket,playerInizioTurno,strlen(playerInizioTurno),0);
-        printf("Avvertito il player %s della squadra %s che il player %s della squadra %s inizia il match\n",capitanoB->nomePlayer,nuovaPartita->squadra_B->nomeSquadra,playerInizioTurno,squadraInizioTurno);
+        sendEventoPartecipantiMatch(messaggioJSON,indexPartita);
+        printf("Avvertiti i player delle squadre %s e %s dell'inizio del match: ",nuovaPartita->squadra_A->nome_squadra,nuovaPartita->squadra_B->nome_squadra);
+        printf("il primo turno è di %s della squadra %s\n",playerInizioTurno,squadraInizioTurno);
 
         simulaMatch(indexPartita);
     }

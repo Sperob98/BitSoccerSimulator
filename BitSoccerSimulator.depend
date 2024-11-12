@@ -1,11 +1,12 @@
 # depslib dependency file v1.0
-1726435123 source:/home/rob/Desktop/BitSoccerSimulator/main.c
+1731072132 source:/home/rob/Desktop/BitSoccerSimulator/main.c
 	<json-c/json.h>
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
 	<sys/socket.h>
 	<sys/types.h>
+	<sys/wait.h>
 	<arpa/inet.h>
 	<unistd.h>
 	"squadra.h"
@@ -15,7 +16,7 @@
 	"variabiliGlobali.h"
 	"gestioneThread.h"
 
-1726252430 source:/home/rob/Desktop/BitSoccerSimulator/squadra.c
+1731075290 source:/home/rob/Desktop/BitSoccerSimulator/squadra.c
 	"squadra.h"
 	"variabiliGlobali.h"
 	"gestioneThread.h"
@@ -27,11 +28,11 @@
 	<unistd.h>
 	<json-c/json.h>
 
-1724876882 /home/rob/Desktop/BitSoccerSimulator/squadra.h
+1731074665 /home/rob/Desktop/BitSoccerSimulator/squadra.h
 	"player.h"
 	<pthread.h>
 
-1726254289 source:/home/rob/Desktop/BitSoccerSimulator/gestioneConnessioni.c
+1731074720 source:/home/rob/Desktop/BitSoccerSimulator/gestioneConnessioni.c
 	"gestioneConnessioni.h"
 	"variabiliGlobali.h"
 	"squadra.h"
@@ -39,7 +40,7 @@
 1723478534 /home/rob/Desktop/BitSoccerSimulator/gestioneConnessioni.h
 	<json-c/json.h>
 
-1724838798 /home/rob/Desktop/BitSoccerSimulator/variabiliGlobali.h
+1731067365 /home/rob/Desktop/BitSoccerSimulator/variabiliGlobali.h
 	"squadra.h"
 	"player.h"
 	"partita.h"
@@ -48,9 +49,9 @@
 1723736043 /home/rob/Desktop/BitSoccerSimulator/gestioneThread.h
 	<pthread.h>
 
-1726259338 /home/rob/Desktop/BitSoccerSimulator/player.h
+1731077142 /home/rob/Desktop/BitSoccerSimulator/player.h
 
-1726261202 source:/home/rob/Desktop/BitSoccerSimulator/player.c
+1731074822 source:/home/rob/Desktop/BitSoccerSimulator/player.c
 	"player.h"
 	"variabiliGlobali.h"
 	<stdio.h>
@@ -60,10 +61,10 @@
 	<unistd.h>
 	<json-c/json.h>
 
-1726261202 /home/rob/Desktop/BitSoccerSimulator/partita.h
+1731088643 /home/rob/Desktop/BitSoccerSimulator/partita.h
 	"squadra.h"
 
-1726265259 source:/home/rob/Desktop/BitSoccerSimulator/partita.c
+1731402583 source:/home/rob/Desktop/BitSoccerSimulator/partita.c
 	"partita.h"
 	"variabiliGlobali.h"
 	"player.h"

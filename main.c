@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include "squadra.h"
@@ -17,9 +18,9 @@
 //Inizializzazione variabili globali
 pthread_mutex_t mutexListaSquadre = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condListaSquadre = PTHREAD_COND_INITIALIZER;
-squadra *squadreInCostruzione[50]; //Array di tutte le squadre fondate in attesa di essere completate e partipare a un match
+squadra *squadreInCostruzione[SIZE_ARRAY_TEAMS]; //Array di tutte le squadre fondate in attesa di essere completate e partipare a un match
 
-player *playersConnessi[50];//Array di tutti gli utenti connnessi
+player *playersConnessi[SIZE_ARRAY_PLAYERS];//Array di tutti gli utenti connnessi
 pthread_mutex_t mutexPlayers = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condPlayers = PTHREAD_COND_INITIALIZER;
 
@@ -72,13 +73,25 @@ void *gestione_richieste_client(void *arg){
 
                 printf("Richiesta connessione player\n");
 
+                pthread_mutex_lock(&mutexPlayers);
+
                 aggiungi_utente_connesso(client_message,client_sock);
+
+                pthread_mutex_unlock(&mutexPlayers);
 
             }else if(strcmp(tipoRIchiesta,"newSquadra")==0) {
 
                 printf("Richiesta creazione nuova squadra\n");
 
+                //Mutua escusione
+                pthread_mutex_lock(&mutexPlayers);
+                pthread_mutex_lock(&mutexListaSquadre);
+
                 int stato = aggiungi_nuova_squadra(client_message, client_sock);
+
+                //Rilascia mutex dei players e delle squadre
+                pthread_mutex_unlock(&mutexPlayers);
+                pthread_mutex_unlock(&mutexListaSquadre);
 
                 if(stato == 1){
 
@@ -194,9 +207,23 @@ void *gestione_richieste_client(void *arg){
 
                     }else if(pid > 0){
 
-                        wait(NULL);
-                        free(match);
-                        partite[indexPartita] = NULL;
+                        int status;
+                        waitpid(pid,&status,0);
+
+                        if(WIFEXITED(status)){
+
+                            int exit_status = WEXITSTATUS(status);
+                            printf("Terminano con %d\n",exit_status);
+
+                        }else if(WIFSIGNALED(status)) {
+
+                            int term = WTERMSIG(status);
+                            printf("Terminato a causa del segnale: %d\n",term);
+
+                        }
+
+                        //free(match);
+                        //partite[indexPartita] = NULL;
                     }
 
                 }else{

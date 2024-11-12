@@ -14,7 +14,7 @@
 char* serializza_squadra(const squadra* squadra) {
 
     json_object *jobj = json_object_new_object();
-    json_object_object_add(jobj, "nomeSquadra", json_object_new_string(squadra->nomeSquadra));
+    json_object_object_add(jobj, "nomeSquadra", json_object_new_string(squadra->nome_squadra));
     json_object_object_add(jobj, "capitano", json_object_new_int(squadra->capitano));
     //Creazione di un array JSON per i giocatori
     json_object *jarray = json_object_new_array();
@@ -45,12 +45,12 @@ int aggiungi_nuova_squadra(char *messaggio, int client_socket) {
     json_object_object_get_ex(parsed_json, "capitano", &capitano);
 
     //Controlla se il nome squadra è unico
-    pthread_mutex_lock(&mutexListaSquadre); //Prendi mutex dell'array
-    for(int i=0; i<50; i++){
+
+    for(int i=0; i<SIZE_ARRAY_TEAMS; i++){
 
         if(squadreInCostruzione[i] != NULL){
 
-            if(strcmp(squadreInCostruzione[i]->nomeSquadra,json_object_get_string(nomeSquadra)) == 0){
+            if(strcmp(squadreInCostruzione[i]->nome_squadra,json_object_get_string(nomeSquadra)) == 0){
 
                 //Invio stato di fallimento creazione, nome non unico
                 if (send(client_socket, "statoCreazione\n", strlen("statoCreazione\n"), 0) < 0) {
@@ -64,8 +64,6 @@ int aggiungi_nuova_squadra(char *messaggio, int client_socket) {
                     //Se fallisce la send eliminare il player dall'array..
                 }
 
-                pthread_mutex_unlock(&mutexListaSquadre);
-
                 return statoDiCreazione;
             }
         }
@@ -75,19 +73,15 @@ int aggiungi_nuova_squadra(char *messaggio, int client_socket) {
     squadra *newSquadra = malloc(sizeof(squadra));
 
     //assegnazione nome della squadra
-    newSquadra->nomeSquadra = malloc(strlen(json_object_get_string(nomeSquadra)) + 1);
-    strcpy(newSquadra->nomeSquadra, json_object_get_string(nomeSquadra));
-
-    //Mutua escusione
-    pthread_mutex_lock(&mutexPlayers);
+    strcpy(newSquadra->nome_squadra,json_object_get_string(nomeSquadra));
 
     //Cerca il capitano nell'array globale e lo assegna alla nuova squdra creata
     int i;
-    for(i=0; i<50; i++){
+    for(i=0; i<SIZE_ARRAY_PLAYERS; i++){
 
         if(playersConnessi[i] != NULL){
 
-            if(strcmp(playersConnessi[i]->nomePlayer,json_object_get_string(capitano)) == 0){
+            if(strcmp(playersConnessi[i]->nome_player,json_object_get_string(capitano)) == 0){
 
                 //Assegnazione capitano
                 newSquadra->capitano = playersConnessi[i];
@@ -101,31 +95,27 @@ int aggiungi_nuova_squadra(char *messaggio, int client_socket) {
     newSquadra->numeroPlayers = 1;
 
     //Inizializza array players
-    for(int k=0; k<4; k++){
+    for(int k=0; k<SIZE_ARRAY_PLAYER_PARTECIPANTI; k++){
 
         newSquadra->players[k] = NULL;
     }
 
     //Inizialliza array richieste
-     for(int k=0; k<50; k++){
+     for(int k=0; k<SIZE_ARRAY_PLAYER_PARTECIPANTI; k++){
 
         newSquadra->richiestePartecipazione[k] = NULL;
     }
 
-    pthread_mutex_init(&(newSquadra->mutexSquadra), NULL);
-
-    pthread_cond_init(&(newSquadra->condSquadra), NULL);
-
     //Aggiunta della nuova squadra nell'array globale delle squadre
-        for(i=0;i<50;i++){
+        for(i=0;i<SIZE_ARRAY_TEAMS;i++){
 
         if(squadreInCostruzione[i] == NULL) break;
     }
 
-    if(i < 50){
+    if(i < SIZE_ARRAY_TEAMS){
 
         squadreInCostruzione[i] = newSquadra;
-        printf("Squadra %s fondata dal capitano %s\n", newSquadra->nomeSquadra,newSquadra->capitano->nomePlayer);
+        printf("Squadra %s fondata dal capitano %s\n", newSquadra->nome_squadra,newSquadra->capitano->nome_player);
         statoDiCreazione = 1;
 
         //Invio stato di successo
@@ -143,7 +133,7 @@ int aggiungi_nuova_squadra(char *messaggio, int client_socket) {
 
     }else{
 
-        printf("Squadra %s non aggiunta, lista piena\n", newSquadra->nomeSquadra);
+        printf("Squadra %s non aggiunta, lista piena\n", newSquadra->nome_squadra);
         free(newSquadra);
 
         //Invio stato di fallimento creazione per il limite massimo
@@ -159,10 +149,6 @@ int aggiungi_nuova_squadra(char *messaggio, int client_socket) {
         }
     }
 
-    //Rilascia mutex dei players e delle squadre
-    pthread_mutex_unlock(&mutexPlayers);
-    pthread_mutex_unlock(&mutexListaSquadre);
-
     return statoDiCreazione;
 }
 
@@ -170,13 +156,13 @@ char* serializza_array_squadre() {
 
     json_object *jarray = json_object_new_array();
 
-    for (int i = 0; i<50; i++) {
+    for (int i = 0; i<SIZE_ARRAY_TEAMS; i++) {
 
             if(squadreInCostruzione[i] != NULL){
 
                 json_object *jobj = json_object_new_object();
-                json_object_object_add(jobj, "nomeSquadra", json_object_new_string(squadreInCostruzione[i]->nomeSquadra));
-                json_object_object_add(jobj, "capitano", json_object_new_string(squadreInCostruzione[i]->capitano->nomePlayer));
+                json_object_object_add(jobj, "nomeSquadra", json_object_new_string(squadreInCostruzione[i]->nome_squadra));
+                json_object_object_add(jobj, "capitano", json_object_new_string(squadreInCostruzione[i]->capitano->nome_player));
                 json_object_object_add(jobj, "numeroPlayers", json_object_new_int(squadreInCostruzione[i]->numeroPlayers));
                 json_object_array_add(jarray, jobj);
         }
@@ -246,27 +232,27 @@ char *serializza_oggetto_composizione_squadre(int indexSquadra){
     if(squadreInCostruzione[indexSquadra]!= NULL){
 
     //Costruisce l'array dei player che hanno fatto richiesta di partecipazione
-         for(int j=0; j<50; j++){
+         for(int j=0; j<SIZE_ARRAY_TEAMS; j++){
 
             if(squadreInCostruzione[indexSquadra]->richiestePartecipazione[j] != NULL){
 
-                char richiesta[20];
-                strcpy(richiesta,squadreInCostruzione[indexSquadra]->richiestePartecipazione[j]->nomePlayer);
+                char richiesta[SIZE_NAME_PLAYER];
+                strcpy(richiesta,squadreInCostruzione[indexSquadra]->richiestePartecipazione[j]->nome_player);
                 json_object_array_add(json_array_richieste, json_object_new_string(richiesta));
             }
         }
 
     //Costruisce l'array dei player accettati nella squadra
-        char playerCapitano[50];
-        strcpy(playerCapitano,squadreInCostruzione[indexSquadra]->capitano->nomePlayer);
+        char playerCapitano[SIZE_NAME_PLAYER];
+        strcpy(playerCapitano,squadreInCostruzione[indexSquadra]->capitano->nome_player);
         strcat(playerCapitano," (capitano)\0");
         json_object_array_add(json_array_accettati, json_object_new_string(playerCapitano));
         for(int j=0; j<4; j++){
 
             if(squadreInCostruzione[indexSquadra]->players[j] != NULL){
                 printf("numero j: %d\n",j);
-                char playerAccettato[20];
-                strcpy(playerAccettato,squadreInCostruzione[indexSquadra]->players[j]->nomePlayer);
+                char playerAccettato[SIZE_NAME_PLAYER];
+                strcpy(playerAccettato,squadreInCostruzione[indexSquadra]->players[j]->nome_player);
                 json_object_array_add(json_array_accettati, json_object_new_string(playerAccettato));
             }
         }
@@ -291,11 +277,11 @@ void send_aggiornamento_composizione_squadra(char *nomeSquadra){
     int i;
 
     //Cerca la squdra nell'array
-    for(i=0;i<50;i++){
+    for(i=0;i<SIZE_ARRAY_TEAMS;i++){
 
         if(squadreInCostruzione[i] != NULL){
 
-            if(strcmp(squadreInCostruzione[i]->nomeSquadra,nomeSquadra) == 0) break;
+            if(strcmp(squadreInCostruzione[i]->nome_squadra,nomeSquadra) == 0) break;
         }
     }
 
@@ -308,17 +294,17 @@ void send_aggiornamento_composizione_squadra(char *nomeSquadra){
     int socket_player = squadreInCostruzione[i]->capitano->socket;
     send(socket_player,"AggiornamentoComposizioneSquadra\n",strlen("AggiornamentoComposizioneSquadra\n"),0);
     send(socket_player,oggettoDaInviare,strlen(oggettoDaInviare),0);
-    printf("Inviato l'oggetto: %s al capitano %s\n",oggettoDaInviare,squadreInCostruzione[i]->capitano->nomePlayer);
+    printf("Inviato l'oggetto: %s al capitano %s\n",oggettoDaInviare,squadreInCostruzione[i]->capitano->nome_player);
 
     //Aggiornamento ai player che sono in lista di richiesta
-    for(int k=0; k<50; k++){
+    for(int k=0; k<SIZE_ARRAY_TEAMS; k++){
 
         if(squadreInCostruzione[i]->richiestePartecipazione[k] != NULL){
 
             int socket_player = squadreInCostruzione[i]->richiestePartecipazione[k]->socket;
             send(socket_player,"AggiornamentoComposizioneSquadra\n",strlen("AggiornamentoComposizioneSquadra\n"),0);
             send(socket_player,oggettoDaInviare,strlen(oggettoDaInviare),0);
-            printf("Inviato l'oggetto: %s al player %s\n",oggettoDaInviare,squadreInCostruzione[i]->richiestePartecipazione[k]->nomePlayer);
+            printf("Inviato l'oggetto: %s al player %s\n",oggettoDaInviare,squadreInCostruzione[i]->richiestePartecipazione[k]->nome_player);
         }
     }
 
@@ -330,7 +316,7 @@ void send_aggiornamento_composizione_squadra(char *nomeSquadra){
             int socket_player = squadreInCostruzione[i]->players[k]->socket;
             send(socket_player,"AggiornamentoComposizioneSquadra\n",strlen("AggiornamentoComposizioneSquadra\n"),0);
             send(socket_player,oggettoDaInviare,strlen(oggettoDaInviare),0);
-            printf("Inviato l'oggetto: %s al player %s\n",oggettoDaInviare,squadreInCostruzione[i]->players[k]->nomePlayer);
+            printf("Inviato l'oggetto: %s al player %s\n",oggettoDaInviare,squadreInCostruzione[i]->players[k]->nome_player);
         }
     }
 
@@ -345,13 +331,13 @@ void aggiungi_richiesta_partecipazione_squadra(char *messaggio, int client_socke
         //Estrazione squadra a cui partecipare
         struct json_object *squadraJSON;
         json_object_object_get_ex(parsed_json, "squadra", &squadraJSON);
-        char nomeSquadra[100];
+        char nomeSquadra[SIZE_NAME_TEAM];
         strcpy(nomeSquadra,json_object_get_string(squadraJSON));
 
         //Estrazione nomePlayer
         struct json_object *playerJSON;
         json_object_object_get_ex(parsed_json, "player", &playerJSON);
-        char nomePlayer[50];
+        char nomePlayer[SIZE_NAME_PLAYER];
         strcpy(nomePlayer,json_object_get_string(playerJSON));
 
         //Dichiarazioni indici for
@@ -359,24 +345,24 @@ void aggiungi_richiesta_partecipazione_squadra(char *messaggio, int client_socke
         int indexPlayer;
 
         //Cerca indice squadra a cui vuole partecipare il player nell'array globale
-        for(indexSquadra=0; indexSquadra<50; indexSquadra++){
+        for(indexSquadra=0; indexSquadra<SIZE_ARRAY_TEAMS; indexSquadra++){
 
             if(squadreInCostruzione[indexSquadra] != NULL){
 
-                if(strcmp(squadreInCostruzione[indexSquadra]->nomeSquadra,nomeSquadra) == 0) break;
+                if(strcmp(squadreInCostruzione[indexSquadra]->nome_squadra,nomeSquadra) == 0) break;
             }
         }
 
         //Cerca indice player che ha fatto la richiesta nell'array globale
-        for(indexPlayer=0; indexPlayer<50; indexPlayer++){
+        for(indexPlayer=0; indexPlayer<SIZE_ARRAY_PLAYERS; indexPlayer++){
 
             if(playersConnessi[indexPlayer] != NULL){
 
-                if(strcmp(playersConnessi[indexPlayer]->nomePlayer,nomePlayer) == 0) break;
+                if(strcmp(playersConnessi[indexPlayer]->nome_player,nomePlayer) == 0) break;
             }
         }
 
-        if(indexSquadra < 50 && indexPlayer < 50 ){
+        if(indexSquadra < SIZE_ARRAY_TEAMS && indexPlayer < SIZE_ARRAY_PLAYERS ){
         //Cerca il primo slot di richieste libero per aggiungere la richiesta di partecipazione
             for(int k=0; k<50; k++){
 
@@ -436,10 +422,10 @@ void aggiornamento_composizione_squadra(char *messaggio){
     json_object_object_get_ex(parsed_json, "decisione", &decisioneCapitano);
 
 
-    char *squadraString = malloc(strlen(json_object_get_string(nomeSquadra)) + 1);
+    char squadraString[SIZE_NAME_TEAM];
     strcpy(squadraString,json_object_get_string(nomeSquadra));
 
-    char *playerString = malloc(strlen(json_object_get_string(nomePlayer)) + 1);
+    char playerString[SIZE_NAME_PLAYER];
     strcpy(playerString,json_object_get_string(nomePlayer));
 
     char *decisioneString = malloc(strlen(json_object_get_string(decisioneCapitano)) + 1);
@@ -451,25 +437,25 @@ void aggiornamento_composizione_squadra(char *messaggio){
     int indexPlayer;
 
     //Ricerca della squadra con cui il capitano ha preso un decisione
-    for(indexSquadra=0; indexSquadra<50; indexSquadra++){
+    for(indexSquadra=0; indexSquadra<SIZE_ARRAY_TEAMS; indexSquadra++){
 
         if(squadreInCostruzione[indexSquadra] != NULL){
 
-            if(strcmp(squadreInCostruzione[indexSquadra]->nomeSquadra,squadraString) == 0) break;
+            if(strcmp(squadreInCostruzione[indexSquadra]->nome_squadra,squadraString) == 0) break;
         }
 
     }
 
     //Ricerca del player della squadra il cui capitano ha preso una decisione
-    for(indexPlayer=0; indexPlayer<50; indexPlayer++){
+    for(indexPlayer=0; indexPlayer<SIZE_ARRAY_PLAYERS; indexPlayer++){
 
         if(playersConnessi[indexPlayer] != NULL){
 
-            if(strcmp(playersConnessi[indexPlayer]->nomePlayer,playerString) == 0) break;
+            if(strcmp(playersConnessi[indexPlayer]->nome_player,playerString) == 0) break;
         }
     }
 
-    if(indexSquadra > 49 || indexPlayer > 49){
+    if(indexSquadra >= SIZE_ARRAY_PLAYERS || indexPlayer >= SIZE_ARRAY_TEAMS){
 
         //Errore nell'indivuazione della squadra o del player, forse sono discoenssi
         int socketCapitano = squadreInCostruzione[indexSquadra]->capitano->socket;
@@ -482,11 +468,11 @@ void aggiornamento_composizione_squadra(char *messaggio){
 
 
     //Rimozione del player tra le richieste a prescindere se accettato o rifiutato
-    for(int k=0; k<50; k++){
+    for(int k=0; k<SIZE_ARRAY_PLAYERS; k++){
 
         if(squadreInCostruzione[indexSquadra]->richiestePartecipazione[k] != NULL){
 
-            if(strcmp(squadreInCostruzione[indexSquadra]->richiestePartecipazione[k]->nomePlayer,playerString) == 0){
+            if(strcmp(squadreInCostruzione[indexSquadra]->richiestePartecipazione[k]->nome_player,playerString) == 0){
 
                 squadreInCostruzione[indexSquadra]->richiestePartecipazione[k] = NULL;
                 printf("Rimosso il player %s tra le richieste della squadra %s\n",playerString,squadraString);
@@ -501,7 +487,7 @@ void aggiornamento_composizione_squadra(char *messaggio){
 
         int k;
 
-        for(k=0; k<4; k++){
+        for(k=0; k<SIZE_ARRAY_PLAYER_PARTECIPANTI; k++){
 
             if(squadreInCostruzione[indexSquadra]->players[k] == NULL){
 
@@ -514,7 +500,7 @@ void aggiornamento_composizione_squadra(char *messaggio){
         }
 
         //Avviso squadra al completo
-        if(k > 3){
+        if(k >= SIZE_ARRAY_PLAYER_PARTECIPANTI){
 
             int socketCapitano = squadreInCostruzione[indexSquadra]->capitano->socket;
             send(socketCapitano, "rispostaDecisione\n", strlen("rispostaDecisione\n"),0);
@@ -548,21 +534,21 @@ int cerca_squadra_match(char *messaggio, int sockCapitano){
 
     json_object_object_get_ex(parsed_json, "squadra", &nomeSquadra);
 
-    char *squadraString = malloc(strlen(json_object_get_string(nomeSquadra)) + 1);
+    char squadraString[SIZE_NAME_TEAM];
     strcpy(squadraString,json_object_get_string(nomeSquadra));
 
     //Cerca l'indice della squadra che ha chiesto il match nell'array delle squadreInCostruzione
     int indexSquadreInCostruzione;
-    for(indexSquadreInCostruzione=0; indexSquadreInCostruzione<50; indexSquadreInCostruzione++){
+    for(indexSquadreInCostruzione=0; indexSquadreInCostruzione<SIZE_ARRAY_TEAMS; indexSquadreInCostruzione++){
 
         if(squadreInCostruzione[indexSquadreInCostruzione] != NULL){
 
-            int risultatoCmp = strcmp(squadreInCostruzione[indexSquadreInCostruzione]->nomeSquadra,squadraString);
+            int risultatoCmp = strcmp(squadreInCostruzione[indexSquadreInCostruzione]->nome_squadra,squadraString);
             if(risultatoCmp == 0) break;
         }
     }
 
-    if(indexSquadreInCostruzione > 49){ //Caso fallimento nella ricerca della squadra
+    if(indexSquadreInCostruzione >= SIZE_ARRAY_TEAMS){ //Caso fallimento nella ricerca della squadra
 
         printf("Stato richiesta match fallito\n");
 
@@ -580,7 +566,7 @@ int cerca_squadra_match(char *messaggio, int sockCapitano){
 
         if(squadreComplete[indexSquadrePronte] != NULL){
 
-            if(strcmp(squadreComplete[indexSquadrePronte]->nomeSquadra, squadraString) != 0){
+            if(strcmp(squadreComplete[indexSquadrePronte]->nome_squadra, squadraString) != 0){
 
                 matchTrovato = 1;
                 break;
@@ -602,7 +588,7 @@ int cerca_squadra_match(char *messaggio, int sockCapitano){
                 strcpy(partite[i]->inizioTurno,"null");
                 partite[i]->finePartita = 0;
                 partite[i]->inizioPartita = 0;
-                printf("Aggiunta partita: %s vs %s\n",squadraString,squadreComplete[indexSquadrePronte]->nomeSquadra);
+                printf("Aggiunta partita: %s vs %s\n",squadraString,squadreComplete[indexSquadrePronte]->nome_squadra);
                 break;
             }
         }

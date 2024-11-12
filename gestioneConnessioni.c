@@ -22,7 +22,7 @@ void gestione_disconessione_client(int socket_disconessa){
     int indexPlayer;
 
     //Individuazione del player disconesso
-    for(indexPlayer=0; indexPlayer<50; indexPlayer++){
+    for(indexPlayer=0; indexPlayer<SIZE_ARRAY_PLAYERS; indexPlayer++){
 
         if(playersConnessi[indexPlayer] != NULL){
 
@@ -35,7 +35,7 @@ void gestione_disconessione_client(int socket_disconessa){
     int capitano = 0;
     int indexSquadra;
 
-    for(indexSquadra=0; indexSquadra<50; indexSquadra++){
+    for(indexSquadra=0; indexSquadra<SIZE_ARRAY_TEAMS; indexSquadra++){
 
         if(squadreInCostruzione[indexSquadra] != NULL){
 
@@ -46,7 +46,7 @@ void gestione_disconessione_client(int socket_disconessa){
                 break;
             }
 
-            for(int k=0; k<50; k++){
+            for(int k=0; k<SIZE_ARRAY_PLAYERS; k++){
 
                 if(squadreInCostruzione[indexSquadra]->richiestePartecipazione[k] != NULL){
 
@@ -54,7 +54,7 @@ void gestione_disconessione_client(int socket_disconessa){
 
                         squadreInCostruzione[indexSquadra]->richiestePartecipazione[k] = NULL;
                         trovato = 1;
-                        printf("Rimossa richiesta di partecipazione di %s alla squadra %s per disconessione\n", playersConnessi[indexPlayer]->nomePlayer,squadreInCostruzione[indexSquadra]->nomeSquadra);
+                        printf("Rimossa richiesta di partecipazione di %s alla squadra %s per disconessione\n", playersConnessi[indexPlayer]->nome_player,squadreInCostruzione[indexSquadra]->nome_squadra);
                         break;
                     }
                 }
@@ -65,7 +65,7 @@ void gestione_disconessione_client(int socket_disconessa){
 
                         squadreInCostruzione[indexSquadra]->players[k] = NULL;
                         trovato = 1;
-                        printf("Rimossa partecipazione di %s alla squadra %s per disconessione\n", playersConnessi[indexPlayer]->nomePlayer,squadreInCostruzione[indexSquadra]->nomeSquadra);
+                        printf("Rimossa partecipazione di %s alla squadra %s per disconessione\n", playersConnessi[indexPlayer]->nome_player,squadreInCostruzione[indexSquadra]->nome_squadra);
                         break;
                     }
                 }
@@ -79,7 +79,7 @@ void gestione_disconessione_client(int socket_disconessa){
 
     if(capitano == 1){
 
-        for(int k=0; k<50; k++){
+        for(int k=0; k<SIZE_ARRAY_TEAMS; k++){
 
             if(squadreInCostruzione[indexSquadra]->richiestePartecipazione[k] != NULL){
 
@@ -102,7 +102,7 @@ void gestione_disconessione_client(int socket_disconessa){
 
     }else if(trovato == 1){
 
-        send_aggiornamento_composizione_squadra(squadreInCostruzione[indexSquadra]->nomeSquadra);
+        send_aggiornamento_composizione_squadra(squadreInCostruzione[indexSquadra]->nome_squadra);
     }
 
 

@@ -8,9 +8,9 @@
 
 extern pthread_mutex_t mutexListaSquadre;
 extern pthread_cond_t condListaSquadre;
-extern squadra *squadreInCostruzione[50];
+extern squadra *squadreInCostruzione[SIZE_ARRAY_TEAMS];
 
-extern player *playersConnessi[50];
+extern player *playersConnessi[SIZE_ARRAY_PLAYERS];
 extern pthread_mutex_t mutexPlayers;
 extern pthread_cond_t condPlayers;
 

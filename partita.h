@@ -7,7 +7,7 @@ typedef struct{
 
     squadra *squadra_A;
     squadra *squadra_B;
-    char inizioTurno[30];
+    char inizioTurno[SIZE_NAME_PLAYER];
     int finePartita;
     int inizioPartita;
 
@@ -16,7 +16,7 @@ typedef struct{
 typedef struct{
 
     int indexPartita;
-    char *player;
+    char player_name[SIZE_NAME_PLAYER];
 
 }argomentiThreadInfortunio;
 
@@ -24,7 +24,7 @@ typedef struct{
 
     int indexPartita;
     int timeP;
-    char *player;
+    char player[SIZE_NAME_PLAYER];
 
 }argomentiThreadPenalizzazione;
 
